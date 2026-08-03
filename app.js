@@ -111,11 +111,13 @@ const deportivosLayer = L.geoJSON(window.DATA_DEPORTIVOS, {
 // así que se ve chico alejado (zoom bajo) y grande acercado (zoom alto) —
 // igual que cualquier objeto real dibujado sobre un mapa.
 const BASE_ZOOM = 14; // zoom de referencia donde el tamaño en px = tamaño "natural"
+const ZOOM_GROWTH = 0.55; // qué tan agresivo crece el círculo por nivel de zoom (1 = duplica cada nivel)
+const MAX_SIZE = 64; // tope de tamaño en px, para que de cerca no tape media cuadra
 
 function sizeAtZoom(total, zoom) {
-  const baseSize = Math.max(34, Math.min(80, 30 + Math.sqrt(total || 1) * 2.2));
-  const scale = Math.pow(2, zoom - BASE_ZOOM);
-  return Math.max(10, baseSize * scale);
+  const baseSize = Math.max(28, Math.min(60, 26 + Math.sqrt(total || 1) * 1.7));
+  const scale = Math.pow(2, (zoom - BASE_ZOOM) * ZOOM_GROWTH);
+  return Math.max(10, Math.min(MAX_SIZE, baseSize * scale));
 }
 
 // Colores por modelo de negocio — paleta oficial CORE
@@ -135,7 +137,7 @@ function buildIcon(total, zoom, modelo) {
   const color = colorForModelo(modelo);
   return L.divIcon({
     className: 'core-marker',
-    html: `<div class="core-marker-circle" style="width:${size}px;height:${size}px;background:${color}E6;">
+    html: `<div class="core-marker-circle" style="width:${size}px;height:${size}px;background:${color}A6;">
              ${showLogo ? `<img src="${window.CORE_LOGO}" style="width:${logoW}px;" />` : ''}
            </div>`,
     iconSize: [size, size],
