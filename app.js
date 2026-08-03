@@ -107,10 +107,6 @@ const deportivosLayer = L.geoJSON(window.DATA_DEPORTIVOS, {
 });
 
 // ---------- Sedes CORE ----------
-let totalAlumnos = 0;
-window.DATA_CORE.features.forEach(f => totalAlumnos += (f.properties.total || 0));
-document.getElementById('stat-alumnos').textContent = fmt(totalAlumnos);
-
 // Tamaño geográfico real: el círculo representa un radio fijo en METROS,
 // así que se ve chico alejado (zoom bajo) y grande acercado (zoom alto) —
 // igual que cualquier objeto real dibujado sobre un mapa.
@@ -122,13 +118,24 @@ function sizeAtZoom(total, zoom) {
   return Math.max(10, baseSize * scale);
 }
 
-function buildIcon(total, zoom) {
+// Colores por modelo de negocio — paleta oficial CORE
+const modeloColors = {
+  'CORE': '#FF5C33',
+  'CORE + Pilates': '#6B2A1A',
+  'CORE + Pilates + Yoga': '#C4A482'
+};
+function colorForModelo(modelo) {
+  return modeloColors[modelo] || '#FF5C33';
+}
+
+function buildIcon(total, zoom, modelo) {
   const size = sizeAtZoom(total, zoom);
   const showLogo = size >= 30; // a tamaños muy chicos, el logo no entra legible
   const logoW = size * 0.62;
+  const color = colorForModelo(modelo);
   return L.divIcon({
     className: 'core-marker',
-    html: `<div class="core-marker-circle" style="width:${size}px;height:${size}px;">
+    html: `<div class="core-marker-circle" style="width:${size}px;height:${size}px;background:${color}E6;">
              ${showLogo ? `<img src="${window.CORE_LOGO}" style="width:${logoW}px;" />` : ''}
            </div>`,
     iconSize: [size, size],
@@ -136,12 +143,12 @@ function buildIcon(total, zoom) {
   });
 }
 
-const coreMarkers = []; // {marker, total}
+const coreMarkers = []; // {marker, total, modelo}
 
 const coreLayer = L.geoJSON(window.DATA_CORE, {
   pointToLayer: (f, latlng) => {
-    const marker = L.marker(latlng, { icon: buildIcon(f.properties.total, map.getZoom()) });
-    coreMarkers.push({ marker, total: f.properties.total });
+    const marker = L.marker(latlng, { icon: buildIcon(f.properties.total, map.getZoom(), f.properties.modelo) });
+    coreMarkers.push({ marker, total: f.properties.total, modelo: f.properties.modelo });
     return marker;
   },
   onEachFeature: (f, layer) => {
@@ -161,8 +168,8 @@ const coreLayer = L.geoJSON(window.DATA_CORE, {
 // Recalcular tamaño de cada marcador cuando cambia el zoom
 map.on('zoomend', () => {
   const z = map.getZoom();
-  coreMarkers.forEach(({ marker, total }) => {
-    marker.setIcon(buildIcon(total, z));
+  coreMarkers.forEach(({ marker, total, modelo }) => {
+    marker.setIcon(buildIcon(total, z, modelo));
   });
 });
 

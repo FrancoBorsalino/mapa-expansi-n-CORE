@@ -182,8 +182,7 @@ main {
 /* CORE marker (divIcon, fixed pixel size regardless of zoom) */
 .core-marker { background: transparent; border: none; }
 .core-marker-circle {
-  background: var(--orange);
-  border: 2px solid #7a1f0c;
+  border: 2px solid rgba(0,0,0,0.45);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -223,8 +222,12 @@ main {
       <div class="panel-title">Sedes CORE</div>
       <div class="layer-item">
         <input type="checkbox" id="chk-core" checked>
-        <span class="swatch" style="background:#FF5C33;"></span>
         <label for="chk-core">Sedes propias (35)</label>
+      </div>
+      <div class="legend-box show" style="margin-top:.5rem;">
+        <div class="legend-row"><span class="legend-swatch" style="background:#FF5C33;"></span>Indoor (CORE)</div>
+        <div class="legend-row"><span class="legend-swatch" style="background:#6B2A1A;"></span>Indoor + Pilates</div>
+        <div class="legend-row"><span class="legend-swatch" style="background:#C4A482;"></span>Indoor + Pilates + Yoga</div>
       </div>
     </div>
 
@@ -252,22 +255,6 @@ main {
         <label for="chk-densidad">Densidad poblacional</label>
       </div>
       <div id="legend-densidad" class="legend-box"></div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-title">Resumen</div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-alumnos">—</div>
-        <div class="stat-label">Alumnos activos totales</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-sedes">35</div>
-        <div class="stat-label">Sedes CORE</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-competencia">1.148</div>
-        <div class="stat-label">Establecimientos deportivos (AMBA)</div>
-      </div>
     </div>
 
   </aside>
