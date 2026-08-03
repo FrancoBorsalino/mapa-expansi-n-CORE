@@ -162,7 +162,7 @@ function transporteColor(uso) {
 const transporteLayer = L.geoJSON(window.DATA_TRANSPORTE, {
   style: f => ({
     fillColor: transporteColor(f.properties.usos_colectivo || 0),
-    fillOpacity: 0.8,
+    fillOpacity: 0.4,
     color: 'rgba(0,0,0,0.15)',
     weight: 0.2,
     stroke: false
