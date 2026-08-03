@@ -153,16 +153,16 @@ const barriosLayer = L.geoJSON(window.DATA_BARRIOS, {
 
 // ---------- Transporte: uso de colectivo (zonal, quintiles) ----------
 function transporteColor(uso) {
-  if (uso >= 1348) return '#D9483A';
-  if (uso >= 419)  return '#E0763A';
-  if (uso >= 216)  return '#E0A526';
-  if (uso >= 91)   return '#E8D06B';
-  return '#F5EFC9';
+  if (uso >= 1348) return '#0B3D0B';
+  if (uso >= 419)  return '#1E7A2E';
+  if (uso >= 216)  return '#3FA84A';
+  if (uso >= 91)   return '#7ACB6E';
+  return '#C9EABB';
 }
 const transporteLayer = L.geoJSON(window.DATA_TRANSPORTE, {
   style: f => ({
     fillColor: transporteColor(f.properties.usos_colectivo || 0),
-    fillOpacity: 0.55,
+    fillOpacity: 0.8,
     color: 'rgba(0,0,0,0.15)',
     weight: 0.2,
     stroke: false
@@ -342,11 +342,11 @@ document.getElementById('chk-riesgo').addEventListener('change', e => {
 
 const legendTransporte = document.getElementById('legend-transporte');
 const transporteBands = [
-  ['#D9483A', '≥ 1.348 usos/radio'],
-  ['#E0763A', '419 – 1.348'],
-  ['#E0A526', '216 – 419'],
-  ['#E8D06B', '91 – 216'],
-  ['#F5EFC9', '< 91']
+  ['#0B3D0B', '≥ 1.348 usos/radio'],
+  ['#1E7A2E', '419 – 1.348'],
+  ['#3FA84A', '216 – 419'],
+  ['#7ACB6E', '91 – 216'],
+  ['#C9EABB', '< 91']
 ];
 transporteBands.forEach(([color, label]) => {
   legendTransporte.innerHTML += `<div class="legend-row"><span class="legend-swatch" style="background:${color}"></span>${label}</div>`;
