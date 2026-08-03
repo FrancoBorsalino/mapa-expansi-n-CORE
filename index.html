@@ -270,6 +270,28 @@ main {
       </div>
     </div>
 
+    <div class="panel">
+      <div class="panel-title">Transporte</div>
+      <div class="layer-item">
+        <input type="checkbox" id="chk-transporte">
+        <span class="swatch" style="background:linear-gradient(90deg,#2E7DFF,#D9483A);"></span>
+        <label for="chk-transporte">Uso de colectivo (zonal)</label>
+      </div>
+      <div id="legend-transporte" class="legend-box"></div>
+
+      <div class="layer-item">
+        <input type="checkbox" id="chk-tren">
+        <span class="swatch" style="background:#4CE0AF;"></span>
+        <label for="chk-tren">Estaciones de tren</label>
+      </div>
+
+      <div class="layer-item">
+        <input type="checkbox" id="chk-omnibus">
+        <span class="swatch" style="background:#B04CE0;"></span>
+        <label for="chk-omnibus">Terminales de ómnibus</label>
+      </div>
+    </div>
+
   </aside>
 
   <div id="map-wrap">
@@ -283,6 +305,9 @@ main {
 <script src="barrios_slim.geojson.js"></script>
 <script src="core_slim.geojson.js"></script>
 <script src="deportivos_slim.geojson.js"></script>
+<script src="transporte_slim.geojson.js"></script>
+<script src="tren_slim.geojson.js"></script>
+<script src="omnibus_slim.geojson.js"></script>
 <script src="logo_data.js"></script>
 <script src="app.js"></script>
 </body>

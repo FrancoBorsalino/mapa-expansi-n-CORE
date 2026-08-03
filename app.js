@@ -151,6 +151,68 @@ const barriosLayer = L.geoJSON(window.DATA_BARRIOS, {
   }
 });
 
+// ---------- Transporte: uso de colectivo (zonal, quintiles) ----------
+function transporteColor(uso) {
+  if (uso >= 1348) return '#D9483A';
+  if (uso >= 419)  return '#E0763A';
+  if (uso >= 216)  return '#E0A526';
+  if (uso >= 91)   return '#E8D06B';
+  return '#F5EFC9';
+}
+const transporteLayer = L.geoJSON(window.DATA_TRANSPORTE, {
+  style: f => ({
+    fillColor: transporteColor(f.properties.usos_colectivo || 0),
+    fillOpacity: 0.55,
+    color: 'rgba(0,0,0,0.15)',
+    weight: 0.2,
+    stroke: false
+  }),
+  onEachFeature: (f, layer) => {
+    const p = f.properties;
+    layer.bindPopup(`
+      <div class="popup-title">Uso de colectivo</div>
+      <div class="popup-row">Transacciones (radio): <b>${fmt(p.usos_colectivo || 0)}</b></div>
+      <div class="popup-row">Partido/Depto: ${p.DPTO || ''}</div>
+    `);
+  }
+});
+
+// ---------- Estaciones de tren (puntos) ----------
+const trenLayer = L.geoJSON(window.DATA_TREN, {
+  pointToLayer: (f, latlng) => L.circleMarker(latlng, {
+    radius: 5,
+    fillColor: '#4CE0AF',
+    color: '#1a5c42',
+    weight: 1,
+    fillOpacity: 0.9
+  }),
+  onEachFeature: (f, layer) => {
+    const p = f.properties;
+    layer.bindPopup(`
+      <div class="popup-title">${p.nam || 'Estación'}</div>
+      <div class="popup-row">${p.gna || 'Estación de ferrocarril'}</div>
+    `);
+  }
+});
+
+// ---------- Terminales de ómnibus (puntos, muy pocos) ----------
+const omnibusLayer = L.geoJSON(window.DATA_OMNIBUS, {
+  pointToLayer: (f, latlng) => L.circleMarker(latlng, {
+    radius: 6,
+    fillColor: '#B04CE0',
+    color: '#4a1a63',
+    weight: 1,
+    fillOpacity: 0.9
+  }),
+  onEachFeature: (f, layer) => {
+    const p = f.properties;
+    layer.bindPopup(`
+      <div class="popup-title">${p.nam || 'Terminal'}</div>
+      <div class="popup-row">${p.fna || 'Terminal de ómnibus'}</div>
+    `);
+  }
+});
+
 // ---------- Sedes CORE ----------
 // Tamaño geográfico real: el círculo representa un radio fijo en METROS,
 // así que se ve chico alejado (zoom bajo) y grande acercado (zoom alto) —
@@ -235,6 +297,9 @@ toggleLayer('chk-poder', poderLayer);
 toggleLayer('chk-densidad', densidadLayer);
 toggleLayer('chk-riesgo', riesgoLayer);
 toggleLayer('chk-barrios', barriosLayer);
+toggleLayer('chk-transporte', transporteLayer);
+toggleLayer('chk-tren', trenLayer);
+toggleLayer('chk-omnibus', omnibusLayer);
 
 // ---------- Leyendas dinámicas ----------
 const legendPoder = document.getElementById('legend-poder');
@@ -273,4 +338,19 @@ riesgoBands.forEach(([color, label]) => {
 });
 document.getElementById('chk-riesgo').addEventListener('change', e => {
   legendRiesgo.classList.toggle('show', e.target.checked);
+});
+
+const legendTransporte = document.getElementById('legend-transporte');
+const transporteBands = [
+  ['#D9483A', '≥ 1.348 usos/radio'],
+  ['#E0763A', '419 – 1.348'],
+  ['#E0A526', '216 – 419'],
+  ['#E8D06B', '91 – 216'],
+  ['#F5EFC9', '< 91']
+];
+transporteBands.forEach(([color, label]) => {
+  legendTransporte.innerHTML += `<div class="legend-row"><span class="legend-swatch" style="background:${color}"></span>${label}</div>`;
+});
+document.getElementById('chk-transporte').addEventListener('change', e => {
+  legendTransporte.classList.toggle('show', e.target.checked);
 });
