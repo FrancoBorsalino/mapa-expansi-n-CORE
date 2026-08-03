@@ -450,3 +450,104 @@ document.getElementById('btn-reset-layers').addEventListener('click', () => {
     }
   });
 });
+
+// ---------- Buscador de direcciones (Nominatim / OpenStreetMap) ----------
+const pinIcon = L.divIcon({
+  className: '',
+  html: `<svg width="30" height="42" viewBox="0 0 30 42" xmlns="http://www.w3.org/2000/svg">
+           <path d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 27 15 27s15-16.5 15-27C30 6.7 23.3 0 15 0z" fill="#FF3D9A" stroke="#7a1a4a" stroke-width="1.5"/>
+           <circle cx="15" cy="15" r="6" fill="white"/>
+         </svg>`,
+  iconSize: [30, 42],
+  iconAnchor: [15, 42],
+  popupAnchor: [0, -38]
+});
+
+const pinsLayer = L.layerGroup().addTo(map);
+let pinCounter = 0;
+const pinsById = {}; // id -> { marker, label }
+
+function actualizarListaPines() {
+  const cont = document.getElementById('addr-pins-list');
+  const btnClear = document.getElementById('btn-clear-pins');
+  const ids = Object.keys(pinsById);
+  if (ids.length === 0) {
+    cont.innerHTML = '';
+    btnClear.style.display = 'none';
+    return;
+  }
+  btnClear.style.display = 'block';
+  cont.innerHTML = ids.map(id => `
+    <div class="addr-pin-item">
+      <span class="dot"></span>
+      <span class="label" title="${pinsById[id].label}">${pinsById[id].label}</span>
+      <span class="remove-pin" data-pin-id="${id}">✕</span>
+    </div>
+  `).join('');
+  cont.querySelectorAll('.remove-pin').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.getAttribute('data-pin-id');
+      pinsLayer.removeLayer(pinsById[id].marker);
+      delete pinsById[id];
+      actualizarListaPines();
+    });
+  });
+}
+
+function agregarPin(lat, lon, label) {
+  const id = 'pin' + (++pinCounter);
+  const marker = L.marker([lat, lon], { icon: pinIcon }).addTo(pinsLayer);
+  marker.bindPopup(`
+    <div class="popup-title">📍 ${label}</div>
+    <div class="popup-row" style="color:var(--muted); font-size:11px;">${lat.toFixed(5)}, ${lon.toFixed(5)}</div>
+  `);
+  pinsById[id] = { marker, label };
+  actualizarListaPines();
+  map.setView([lat, lon], 16);
+  marker.openPopup();
+}
+
+async function buscarDireccion(query) {
+  const resultsDiv = document.getElementById('addr-search-results');
+  if (!query.trim()) return;
+  resultsDiv.innerHTML = `<div style="font-size:11px; color:var(--muted); padding:.3rem;">Buscando...</div>`;
+  try {
+    // Priorizamos resultados dentro del área AMBA (viewbox), sin excluir el resto del país
+    const viewbox = '-59.3,-34.2,-57.6,-35.2';
+    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=ar&viewbox=${viewbox}&q=${encodeURIComponent(query)}`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+
+    if (!data.length) {
+      resultsDiv.innerHTML = `<div style="font-size:11px; color:var(--muted); padding:.3rem;">Sin resultados. Probá agregando el partido/comuna.</div>`;
+      return;
+    }
+
+    resultsDiv.innerHTML = data.map((r, i) => `
+      <div class="addr-result-item" data-idx="${i}">${r.display_name}</div>
+    `).join('');
+
+    resultsDiv.querySelectorAll('.addr-result-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const r = data[parseInt(el.getAttribute('data-idx'))];
+        agregarPin(parseFloat(r.lat), parseFloat(r.lon), r.display_name.split(',').slice(0, 2).join(','));
+        resultsDiv.innerHTML = '';
+        document.getElementById('addr-search-input').value = '';
+      });
+    });
+  } catch (err) {
+    resultsDiv.innerHTML = `<div style="font-size:11px; color:var(--muted); padding:.3rem;">Error al buscar. Probá de nuevo.</div>`;
+  }
+}
+
+document.getElementById('addr-search-btn').addEventListener('click', () => {
+  buscarDireccion(document.getElementById('addr-search-input').value);
+});
+document.getElementById('addr-search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') buscarDireccion(e.target.value);
+});
+document.getElementById('btn-clear-pins').addEventListener('click', () => {
+  pinsLayer.clearLayers();
+  Object.keys(pinsById).forEach(id => delete pinsById[id]);
+  actualizarListaPines();
+});

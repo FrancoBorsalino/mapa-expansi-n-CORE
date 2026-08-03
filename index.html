@@ -209,6 +209,40 @@ main {
 .leaflet-tooltip-left:before { border-left-color: var(--bg2); }
 .leaflet-tooltip-right:before { border-right-color: var(--bg2); }
 
+.addr-result-item {
+  padding: .45rem .55rem;
+  font-size: 11.5px;
+  color: var(--light);
+  background: var(--bg3);
+  border-radius: 5px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: background .15s;
+  line-height: 1.3;
+}
+.addr-result-item:hover { background: var(--mid); color: var(--white); }
+
+.addr-pin-item {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .4rem .55rem;
+  font-size: 11.5px;
+  color: var(--light);
+  background: var(--bg3);
+  border-radius: 5px;
+  margin-bottom: 4px;
+}
+.addr-pin-item .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #FF3D9A; flex-shrink: 0;
+}
+.addr-pin-item .label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.addr-pin-item .remove-pin {
+  cursor: pointer; color: var(--muted); font-size: 14px; line-height: 1; padding: 0 .2rem;
+}
+.addr-pin-item .remove-pin:hover { color: var(--orange); }
+
 /* CORE marker (divIcon, fixed pixel size regardless of zoom) */
 .core-marker { background: transparent; border: none; }
 .core-marker-circle {
@@ -247,6 +281,20 @@ main {
 
 <main>
   <aside id="sidebar">
+
+    <div class="panel">
+      <div class="panel-title">Buscar dirección</div>
+      <div style="display:flex; gap:.4rem;">
+        <input id="addr-search-input" type="text" placeholder="Ej: Santa Fe 3390, CABA"
+          style="flex:1; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.5rem .6rem; border-radius:6px; font-size:12px; outline:none;">
+        <button id="addr-search-btn" style="background:var(--orange); border:none; color:white; padding:.5rem .8rem; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">Buscar</button>
+      </div>
+      <div id="addr-search-results" style="margin-top:.4rem;"></div>
+      <div id="addr-pins-list" style="margin-top:.6rem;"></div>
+      <button id="btn-clear-pins" style="display:none; width:100%; background:transparent; border:1px solid var(--border); color:var(--muted); padding:.4rem .6rem; border-radius:6px; font-size:11px; cursor:pointer; margin-top:.5rem;">
+        Borrar todos los pines
+      </button>
+    </div>
 
     <button id="btn-reset-layers" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.6rem .8rem; border-radius:8px; font-size:12px; font-weight:500; letter-spacing:.03em; cursor:pointer; margin-bottom:1.25rem; transition: background .15s, border-color .15s;" onmouseover="this.style.background='var(--mid)'" onmouseout="this.style.background='var(--bg3)'">
       ↺ Apagar todas las capas
