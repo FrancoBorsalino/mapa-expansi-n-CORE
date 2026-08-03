@@ -106,6 +106,51 @@ const deportivosLayer = L.geoJSON(window.DATA_DEPORTIVOS, {
   }
 });
 
+// ---------- Riesgo de exclusión (1 bajo - 6 alto) ----------
+function riesgoColor(inc) {
+  if (inc >= 5) return '#D9483A';
+  if (inc >= 4) return '#E0763A';
+  if (inc >= 3) return '#E0A526';
+  if (inc >= 2) return '#E8D06B';
+  return '#F5EFC9';
+}
+const riesgoLayer = L.geoJSON(window.DATA_RIESGO, {
+  style: f => ({
+    fillColor: riesgoColor(f.properties.Incidencia || 1),
+    fillOpacity: 0.55,
+    color: 'rgba(0,0,0,0.15)',
+    weight: 0.2,
+    stroke: false
+  }),
+  onEachFeature: (f, layer) => {
+    const p = f.properties;
+    layer.bindPopup(`
+      <div class="popup-title">Riesgo de exclusión</div>
+      <div class="popup-row">Incidencia: <b>${p.Incidencia}</b> / 6</div>
+      <div class="popup-row">Partido/Depto: ${p.DPTO || ''}</div>
+    `);
+  }
+});
+
+// ---------- Barrios populares ----------
+const barriosLayer = L.geoJSON(window.DATA_BARRIOS, {
+  style: f => ({
+    fillColor: '#7A4A22',
+    fillOpacity: 0.6,
+    color: '#3d2510',
+    weight: 0.6
+  }),
+  onEachFeature: (f, layer) => {
+    const p = f.properties;
+    layer.bindPopup(`
+      <div class="popup-title">${p.nombre_bar || 'Barrio popular'}</div>
+      <div class="popup-row">Tipo: ${p.clasificacion || '—'}</div>
+      <div class="popup-row">Familias: <b>${p.familias ? fmt(p.familias) : '—'}</b></div>
+      <div class="popup-row">Partido/Depto: ${p.DPTO || ''}</div>
+    `);
+  }
+});
+
 // ---------- Sedes CORE ----------
 // Tamaño geográfico real: el círculo representa un radio fijo en METROS,
 // así que se ve chico alejado (zoom bajo) y grande acercado (zoom alto) —
@@ -188,6 +233,8 @@ toggleLayer('chk-core', coreLayer);
 toggleLayer('chk-deportivos', deportivosLayer);
 toggleLayer('chk-poder', poderLayer);
 toggleLayer('chk-densidad', densidadLayer);
+toggleLayer('chk-riesgo', riesgoLayer);
+toggleLayer('chk-barrios', barriosLayer);
 
 // ---------- Leyendas dinámicas ----------
 const legendPoder = document.getElementById('legend-poder');
@@ -211,4 +258,19 @@ densBands.forEach(([color, label]) => {
 });
 document.getElementById('chk-densidad').addEventListener('change', e => {
   legendDensidad.classList.toggle('show', e.target.checked);
+});
+
+const legendRiesgo = document.getElementById('legend-riesgo');
+const riesgoBands = [
+  ['#D9483A', 'Muy alto (5-6)'],
+  ['#E0763A', 'Alto (4)'],
+  ['#E0A526', 'Medio (3)'],
+  ['#E8D06B', 'Bajo (2)'],
+  ['#F5EFC9', 'Muy bajo (1)']
+];
+riesgoBands.forEach(([color, label]) => {
+  legendRiesgo.innerHTML += `<div class="legend-row"><span class="legend-swatch" style="background:${color}"></span>${label}</div>`;
+});
+document.getElementById('chk-riesgo').addEventListener('change', e => {
+  legendRiesgo.classList.toggle('show', e.target.checked);
 });
