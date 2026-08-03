@@ -1,6 +1,6 @@
 // ============ MAPA CORE - Análisis de Expansión ============
 
-const map = L.map('map', { zoomControl: true }).setView([-34.60, -58.45], 12);
+const map = L.map('map', { zoomControl: true, markerZoomAnimation: false }).setView([-34.60, -58.45], 12);
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap &copy; CARTO',
