@@ -551,3 +551,35 @@ document.getElementById('btn-clear-pins').addEventListener('click', () => {
   Object.keys(pinsById).forEach(id => delete pinsById[id]);
   actualizarListaPines();
 });
+
+// ---------- Pin por click derecho en el mapa ----------
+map.on('contextmenu', async (e) => {
+  const { lat, lng } = e.latlng;
+  // Pin temporal inmediato en lo que llega la dirección (para que se sienta instantáneo)
+  agregarPin(lat, lng, 'Buscando dirección...');
+  const idsAntes = Object.keys(pinsById);
+  const idNuevo = idsAntes[idsAntes.length - 1];
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    const label = data.display_name
+      ? data.display_name.split(',').slice(0, 2).join(',')
+      : `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+    if (idNuevo && pinsById[idNuevo]) {
+      pinsById[idNuevo].label = label;
+      pinsById[idNuevo].marker.setPopupContent(`
+        <div class="popup-title">📍 ${label}</div>
+        <div class="popup-row" style="color:var(--muted); font-size:11px;">${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
+      `);
+      actualizarListaPines();
+    }
+  } catch (err) {
+    if (idNuevo && pinsById[idNuevo]) {
+      pinsById[idNuevo].label = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      actualizarListaPines();
+    }
+  }
+});
