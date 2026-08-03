@@ -37,7 +37,7 @@ const poderLayer = L.geoJSON(window.DATA_PODER, {
     const seg = f.properties.segmento;
     return {
       fillColor: segmentoColors[seg] || '#666',
-      fillOpacity: 0.55,
+      fillOpacity: 0.35,
       color: 'rgba(0,0,0,0.15)',
       weight: 0.2,
       stroke: false
@@ -68,7 +68,7 @@ const densidadLayer = L.geoJSON(window.DATA_DENSIDAD, {
     const pob = f.properties.Radios_poblacion_total || 0;
     return {
       fillColor: densidadColor(pob),
-      fillOpacity: 0.55,
+      fillOpacity: 0.35,
       color: 'rgba(0,0,0,0.15)',
       weight: 0.2,
       stroke: false
@@ -117,7 +117,7 @@ function riesgoColor(inc) {
 const riesgoLayer = L.geoJSON(window.DATA_RIESGO, {
   style: f => ({
     fillColor: riesgoColor(f.properties.Incidencia || 1),
-    fillOpacity: 0.55,
+    fillOpacity: 0.35,
     color: 'rgba(0,0,0,0.15)',
     weight: 0.2,
     stroke: false
@@ -136,7 +136,7 @@ const riesgoLayer = L.geoJSON(window.DATA_RIESGO, {
 const barriosLayer = L.geoJSON(window.DATA_BARRIOS, {
   style: f => ({
     fillColor: '#7A4A22',
-    fillOpacity: 0.6,
+    fillOpacity: 0.4,
     color: '#3d2510',
     weight: 0.6
   }),
@@ -162,7 +162,7 @@ function transporteColor(uso) {
 const transporteLayer = L.geoJSON(window.DATA_TRANSPORTE, {
   style: f => ({
     fillColor: transporteColor(f.properties.usos_colectivo || 0),
-    fillOpacity: 0.4,
+    fillOpacity: 0.3,
     color: 'rgba(0,0,0,0.15)',
     weight: 0.2,
     stroke: false
