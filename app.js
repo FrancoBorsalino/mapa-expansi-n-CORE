@@ -32,6 +32,9 @@ const zonasPotencialesLayer = L.geoJSON(window.DATA_ZONAS_POTENCIALES, {
   onEachFeature: (f, layer) => {
     const p = f.properties;
     const segLabels = {1:'Alta',2:'Media alta',3:'Media'};
+    const techo = p.segmento === 3
+      ? `<div class="popup-row" style="color:var(--muted); font-size:11px;">Techo por poder adquisitivo medio (no puede superar "Moderada")</div>`
+      : '';
     layer.bindPopup(`
       <div class="popup-title">Zona potencial — ${p.nivel}</div>
       <div class="popup-row">Partido/Comuna: <b>${p.DPTO || ''}</b></div>
@@ -39,6 +42,7 @@ const zonasPotencialesLayer = L.geoJSON(window.DATA_ZONAS_POTENCIALES, {
       <div class="popup-row">Población del radio: <b>${fmt(p.pob || 0)}</b></div>
       <div class="popup-row">Riesgo de exclusión: ${p.incidencia} / 6</div>
       <div class="popup-row">Puntaje: <b>${p.score}</b> / 9</div>
+      ${techo}
     `);
   }
 });
@@ -184,10 +188,10 @@ const barriosLayer = L.geoJSON(window.DATA_BARRIOS, {
 
 // ---------- Transporte: uso de colectivo (zonal, quintiles) ----------
 function transporteColor(uso) {
-  if (uso >= 1348) return '#0B3D0B';
-  if (uso >= 419)  return '#1E7A2E';
-  if (uso >= 216)  return '#3FA84A';
-  if (uso >= 91)   return '#7ACB6E';
+  if (uso >= 1220) return '#0B3D0B';
+  if (uso >= 627)  return '#1E7A2E';
+  if (uso >= 335)  return '#3FA84A';
+  if (uso >= 150)  return '#7ACB6E';
   return '#C9EABB';
 }
 const transporteLayer = L.geoJSON(window.DATA_TRANSPORTE, {
@@ -412,11 +416,11 @@ document.getElementById('chk-riesgo').addEventListener('change', e => {
 
 const legendTransporte = document.getElementById('legend-transporte');
 const transporteBands = [
-  ['#0B3D0B', '≥ 1.348 usos/radio'],
-  ['#1E7A2E', '419 – 1.348'],
-  ['#3FA84A', '216 – 419'],
-  ['#7ACB6E', '91 – 216'],
-  ['#C9EABB', '< 91']
+  ['#0B3D0B', '≥ 1.220 usos/radio (2024)'],
+  ['#1E7A2E', '627 – 1.220'],
+  ['#3FA84A', '335 – 627'],
+  ['#7ACB6E', '150 – 335'],
+  ['#C9EABB', '< 150']
 ];
 transporteBands.forEach(([color, label]) => {
   legendTransporte.innerHTML += `<div class="legend-row"><span class="legend-swatch" style="background:${color}"></span>${label}</div>`;
