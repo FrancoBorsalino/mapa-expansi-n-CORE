@@ -12,6 +12,28 @@ function fmt(n) {
   return new Intl.NumberFormat('es-AR').format(Math.round(n));
 }
 
+// ---------- Zonas potenciales (capa cruzada: poder + densidad + riesgo + sin barrios) ----------
+const zonasPotencialesLayer = L.geoJSON(window.DATA_ZONAS_POTENCIALES, {
+  style: {
+    fillColor: '#00E0A4',
+    fillOpacity: 0.4,
+    color: '#00E0A4',
+    weight: 1,
+    opacity: 0.9
+  },
+  onEachFeature: (f, layer) => {
+    const p = f.properties;
+    const segLabels = {1:'Alta',2:'Media alta',3:'Media'};
+    layer.bindPopup(`
+      <div class="popup-title">Zona potencial</div>
+      <div class="popup-row">Partido/Comuna: <b>${p.DPTO || ''}</b></div>
+      <div class="popup-row">Poder adquisitivo: ${segLabels[p.segmento] || p.segmento}</div>
+      <div class="popup-row">Población del radio: <b>${fmt(p.pob || 0)}</b></div>
+      <div class="popup-row">Riesgo de exclusión: ${p.incidencia} / 6</div>
+    `);
+  }
+});
+
 // ---------- Poder adquisitivo (segmento 1-7) ----------
 const segmentoColors = {
   1: '#2E7DFF', // Clase alta
@@ -328,6 +350,7 @@ function toggleLayer(chkId, layer) {
   });
 }
 toggleLayer('chk-core', coreLayer);
+toggleLayer('chk-zonaspotenciales', zonasPotencialesLayer);
 toggleLayer('chk-deportivos', deportivosLayer);
 toggleLayer('chk-poder', poderLayer);
 toggleLayer('chk-densidad', densidadLayer);
@@ -391,4 +414,18 @@ transporteBands.forEach(([color, label]) => {
 });
 document.getElementById('chk-transporte').addEventListener('change', e => {
   legendTransporte.classList.toggle('show', e.target.checked);
+});
+
+// ---------- Botón "Apagar todas las capas" ----------
+// Apaga todos los checkboxes de capas excepto el de Sedes CORE (chk-core),
+// que se mantiene siempre activo ante un reset (pero se puede seguir
+// desactivando a mano en cualquier momento con su propio checkbox).
+document.getElementById('btn-reset-layers').addEventListener('click', () => {
+  document.querySelectorAll('#sidebar input[type="checkbox"]').forEach(chk => {
+    if (chk.id === 'chk-core') return; // nunca la toca el reset
+    if (chk.checked) {
+      chk.checked = false;
+      chk.dispatchEvent(new Event('change'));
+    }
+  });
 });

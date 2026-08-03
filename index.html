@@ -218,6 +218,10 @@ main {
 <main>
   <aside id="sidebar">
 
+    <button id="btn-reset-layers" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.6rem .8rem; border-radius:8px; font-size:12px; font-weight:500; letter-spacing:.03em; cursor:pointer; margin-bottom:1.25rem; transition: background .15s, border-color .15s;" onmouseover="this.style.background='var(--mid)'" onmouseout="this.style.background='var(--bg3)'">
+      ↺ Apagar todas las capas
+    </button>
+
     <div class="panel">
       <div class="panel-title">Sedes CORE</div>
       <div class="layer-item">
@@ -228,6 +232,20 @@ main {
         <div class="legend-row"><span class="legend-swatch" style="background:#FF5C33;"></span>Indoor (CORE)</div>
         <div class="legend-row"><span class="legend-swatch" style="background:#6B2A1A;"></span>Indoor + Pilates</div>
         <div class="legend-row"><span class="legend-swatch" style="background:#C4A482;"></span>Indoor + Pilates + Yoga</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Zonas potenciales</div>
+      <div class="layer-item">
+        <input type="checkbox" id="chk-zonaspotenciales">
+        <span class="swatch" style="background:#00E0A4;"></span>
+        <label for="chk-zonaspotenciales">Oportunidades de apertura</label>
+      </div>
+      <div class="legend-box show" style="margin-top:.5rem;">
+        <div class="legend-row" style="color:var(--muted); font-size:11px; line-height:1.4;">
+          Radios censales con: poder adquisitivo medio-alto, densidad poblacional en el tercio superior, riesgo de exclusión bajo-medio, y sin barrios populares.
+        </div>
       </div>
     </div>
 
@@ -318,6 +336,7 @@ main {
 <script src="riesgo_slim.geojson.js"></script>
 <script src="barrios_slim.geojson.js"></script>
 <script src="core_slim.geojson.js"></script>
+<script src="zonas_potenciales_slim.geojson.js"></script>
 <script src="deportivos_slim.geojson.js"></script>
 <script src="transporte_slim.geojson.js"></script>
 <script src="tren_slim.geojson.js"></script>
