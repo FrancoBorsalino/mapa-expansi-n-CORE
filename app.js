@@ -1,6 +1,6 @@
 // ============ MAPA CORE - Análisis de Expansión ============
 
-const map = L.map('map', { zoomControl: true, zoomAnimation: false, markerZoomAnimation: false }).setView([-34.60, -58.45], 12);
+const map = L.map('map', { zoomControl: true }).setView([-34.60, -58.45], 12);
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap &copy; CARTO',
@@ -111,22 +111,39 @@ let totalAlumnos = 0;
 window.DATA_CORE.features.forEach(f => totalAlumnos += (f.properties.total || 0));
 document.getElementById('stat-alumnos').textContent = fmt(totalAlumnos);
 
-function coreIcon(total) {
-  const size = Math.max(34, Math.min(80, 30 + Math.sqrt(total || 1) * 2.2));
+// Tamaño geográfico real: el círculo representa un radio fijo en METROS,
+// así que se ve chico alejado (zoom bajo) y grande acercado (zoom alto) —
+// igual que cualquier objeto real dibujado sobre un mapa.
+const BASE_ZOOM = 14; // zoom de referencia donde el tamaño en px = tamaño "natural"
+
+function sizeAtZoom(total, zoom) {
+  const baseSize = Math.max(34, Math.min(80, 30 + Math.sqrt(total || 1) * 2.2));
+  const scale = Math.pow(2, zoom - BASE_ZOOM);
+  return Math.max(10, baseSize * scale);
+}
+
+function buildIcon(total, zoom) {
+  const size = sizeAtZoom(total, zoom);
+  const showLogo = size >= 30; // a tamaños muy chicos, el logo no entra legible
   const logoW = size * 0.62;
-  const logoH = logoW * (100/300); // logo aspect ratio ~3:1
   return L.divIcon({
     className: 'core-marker',
     html: `<div class="core-marker-circle" style="width:${size}px;height:${size}px;">
-             <img src="${window.CORE_LOGO}" style="width:${logoW}px;" />
+             ${showLogo ? `<img src="${window.CORE_LOGO}" style="width:${logoW}px;" />` : ''}
            </div>`,
     iconSize: [size, size],
     iconAnchor: [size/2, size/2]
   });
 }
 
+const coreMarkers = []; // {marker, total}
+
 const coreLayer = L.geoJSON(window.DATA_CORE, {
-  pointToLayer: (f, latlng) => L.marker(latlng, { icon: coreIcon(f.properties.total) }),
+  pointToLayer: (f, latlng) => {
+    const marker = L.marker(latlng, { icon: buildIcon(f.properties.total, map.getZoom()) });
+    coreMarkers.push({ marker, total: f.properties.total });
+    return marker;
+  },
   onEachFeature: (f, layer) => {
     const p = f.properties;
     layer.bindPopup(`
@@ -140,6 +157,14 @@ const coreLayer = L.geoJSON(window.DATA_CORE, {
     `);
   }
 }).addTo(map);
+
+// Recalcular tamaño de cada marcador cuando cambia el zoom
+map.on('zoomend', () => {
+  const z = map.getZoom();
+  coreMarkers.forEach(({ marker, total }) => {
+    marker.setIcon(buildIcon(total, z));
+  });
+});
 
 // ---------- Checkboxes de capas ----------
 function toggleLayer(chkId, layer) {
