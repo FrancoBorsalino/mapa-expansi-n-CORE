@@ -108,18 +108,25 @@ const deportivosLayer = L.geoJSON(window.DATA_DEPORTIVOS, {
 
 // ---------- Sedes CORE ----------
 let totalAlumnos = 0;
+window.DATA_CORE.features.forEach(f => totalAlumnos += (f.properties.total || 0));
+document.getElementById('stat-alumnos').textContent = fmt(totalAlumnos);
+
+function coreIcon(total) {
+  const size = Math.max(34, Math.min(80, 30 + Math.sqrt(total || 1) * 2.2));
+  const logoW = size * 0.62;
+  const logoH = logoW * (100/300); // logo aspect ratio ~3:1
+  return L.divIcon({
+    className: 'core-marker',
+    html: `<div class="core-marker-circle" style="width:${size}px;height:${size}px;">
+             <img src="${window.CORE_LOGO}" style="width:${logoW}px;" />
+           </div>`,
+    iconSize: [size, size],
+    iconAnchor: [size/2, size/2]
+  });
+}
+
 const coreLayer = L.geoJSON(window.DATA_CORE, {
-  pointToLayer: (f, latlng) => {
-    totalAlumnos += (f.properties.total || 0);
-    const r = Math.max(6, Math.sqrt(f.properties.total || 1) * 1.1);
-    return L.circleMarker(latlng, {
-      radius: r,
-      fillColor: '#FF5C33',
-      color: '#7a1f0c',
-      weight: 1.5,
-      fillOpacity: 0.9
-    });
-  },
+  pointToLayer: (f, latlng) => L.marker(latlng, { icon: coreIcon(f.properties.total) }),
   onEachFeature: (f, layer) => {
     const p = f.properties;
     layer.bindPopup(`
@@ -133,8 +140,6 @@ const coreLayer = L.geoJSON(window.DATA_CORE, {
     `);
   }
 }).addTo(map);
-
-document.getElementById('stat-alumnos').textContent = fmt(totalAlumnos);
 
 // ---------- Checkboxes de capas ----------
 function toggleLayer(chkId, layer) {
