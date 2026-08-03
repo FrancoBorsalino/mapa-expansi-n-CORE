@@ -37,9 +37,10 @@ const poderLayer = L.geoJSON(window.DATA_PODER, {
     const seg = f.properties.segmento;
     return {
       fillColor: segmentoColors[seg] || '#666',
-      fillOpacity: 0.65,
-      color: 'rgba(0,0,0,0.25)',
-      weight: 0.3
+      fillOpacity: 0.55,
+      color: 'rgba(0,0,0,0.15)',
+      weight: 0.2,
+      stroke: false
     };
   },
   onEachFeature: (f, layer) => {
@@ -67,9 +68,10 @@ const densidadLayer = L.geoJSON(window.DATA_DENSIDAD, {
     const pob = f.properties.Radios_poblacion_total || 0;
     return {
       fillColor: densidadColor(pob),
-      fillOpacity: 0.65,
-      color: 'rgba(0,0,0,0.25)',
-      weight: 0.3
+      fillOpacity: 0.55,
+      color: 'rgba(0,0,0,0.15)',
+      weight: 0.2,
+      stroke: false
     };
   },
   onEachFeature: (f, layer) => {
