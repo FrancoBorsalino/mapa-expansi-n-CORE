@@ -133,10 +133,18 @@ const deportivosLayer = L.geoJSON(window.DATA_DEPORTIVOS, {
   }),
   onEachFeature: (f, layer) => {
     const p = f.properties;
+    const lineaExtra = p.direccion ? `${p.direccion}` : (p.DPTO || '');
+    layer.bindTooltip(`
+      <div style="font-weight:600; color:var(--orange);">${p.nombre}</div>
+      <div>${p.deportes || 'Actividad deportiva'}</div>
+      ${lineaExtra ? `<div style="color:var(--muted); font-size:11px;">${lineaExtra}</div>` : ''}
+    `, { sticky: true, direction: 'top', opacity: 0.95 });
     layer.bindPopup(`
       <div class="popup-title">${p.nombre}</div>
       <div class="popup-row">${p.deportes || 'Actividad deportiva'}</div>
-      <div class="popup-row">${p.DPTO || ''}</div>
+      ${p.direccion ? `<div class="popup-row">${p.direccion}</div>` : ''}
+      ${p.DPTO ? `<div class="popup-row">${p.DPTO}</div>` : ''}
+      <div class="popup-row" style="color:var(--muted); font-size:11px;">Fuente: ${p.fuente === 'OSM' ? 'OpenStreetMap' : 'Base propia'}</div>
     `);
   }
 });
