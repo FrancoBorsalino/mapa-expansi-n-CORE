@@ -213,6 +213,42 @@ const omnibusLayer = L.geoJSON(window.DATA_OMNIBUS, {
   }
 });
 
+// ---------- Universidades (puntos) ----------
+const universidadesLayer = L.geoJSON(window.DATA_UNIVERSIDADES, {
+  pointToLayer: (f, latlng) => L.circleMarker(latlng, {
+    radius: 5,
+    fillColor: '#F2C744',
+    color: '#7a6300',
+    weight: 1,
+    fillOpacity: 0.9
+  }),
+  onEachFeature: (f, layer) => {
+    const p = f.properties;
+    layer.bindPopup(`
+      <div class="popup-title">${p.fna || 'Universidad'}</div>
+      <div class="popup-row">${p.gna || ''}</div>
+    `);
+  }
+});
+
+// ---------- Educación superior no universitaria (puntos) ----------
+const eduSuperiorLayer = L.geoJSON(window.DATA_EDUSUPERIOR, {
+  pointToLayer: (f, latlng) => L.circleMarker(latlng, {
+    radius: 4,
+    fillColor: '#4C7AE0',
+    color: '#1a2f66',
+    weight: 1,
+    fillOpacity: 0.85
+  }),
+  onEachFeature: (f, layer) => {
+    const p = f.properties;
+    layer.bindPopup(`
+      <div class="popup-title">${p.nombre || 'Instituto'}</div>
+      <div class="popup-row">${p.domicilio || ''}</div>
+    `);
+  }
+});
+
 // ---------- Sedes CORE ----------
 // Tamaño geográfico real: el círculo representa un radio fijo en METROS,
 // así que se ve chico alejado (zoom bajo) y grande acercado (zoom alto) —
@@ -300,6 +336,8 @@ toggleLayer('chk-barrios', barriosLayer);
 toggleLayer('chk-transporte', transporteLayer);
 toggleLayer('chk-tren', trenLayer);
 toggleLayer('chk-omnibus', omnibusLayer);
+toggleLayer('chk-universidades', universidadesLayer);
+toggleLayer('chk-edusuperior', eduSuperiorLayer);
 
 // ---------- Leyendas dinámicas ----------
 const legendPoder = document.getElementById('legend-poder');
