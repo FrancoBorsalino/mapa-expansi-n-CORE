@@ -13,23 +13,32 @@ function fmt(n) {
 }
 
 // ---------- Zonas potenciales (capa cruzada: poder + densidad + riesgo + sin barrios) ----------
+const nivelColors = {
+  'Muy buena': '#00E0A4',
+  'Buena':     '#3FA86B',
+  'Moderada':  '#B7D98A'
+};
 const zonasPotencialesLayer = L.geoJSON(window.DATA_ZONAS_POTENCIALES, {
-  style: {
-    fillColor: '#00E0A4',
-    fillOpacity: 0.4,
-    color: '#00E0A4',
-    weight: 1,
-    opacity: 0.9
+  style: f => {
+    const color = nivelColors[f.properties.nivel] || '#00E0A4';
+    return {
+      fillColor: color,
+      fillOpacity: 0.45,
+      color: color,
+      weight: 0.8,
+      opacity: 0.9
+    };
   },
   onEachFeature: (f, layer) => {
     const p = f.properties;
     const segLabels = {1:'Alta',2:'Media alta',3:'Media'};
     layer.bindPopup(`
-      <div class="popup-title">Zona potencial</div>
+      <div class="popup-title">Zona potencial — ${p.nivel}</div>
       <div class="popup-row">Partido/Comuna: <b>${p.DPTO || ''}</b></div>
       <div class="popup-row">Poder adquisitivo: ${segLabels[p.segmento] || p.segmento}</div>
       <div class="popup-row">Población del radio: <b>${fmt(p.pob || 0)}</b></div>
       <div class="popup-row">Riesgo de exclusión: ${p.incidencia} / 6</div>
+      <div class="popup-row">Puntaje: <b>${p.score}</b> / 9</div>
     `);
   }
 });
