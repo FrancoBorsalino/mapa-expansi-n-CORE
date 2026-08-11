@@ -465,7 +465,24 @@ const pinIcon = L.divIcon({
 
 const pinsLayer = L.layerGroup().addTo(map);
 let pinCounter = 0;
-const pinsById = {}; // id -> { marker, label }
+const pinsById = {}; // id -> { marker, label, proxLine, proxLabel }
+
+// Coordenadas de las sedes CORE, para chequear proximidad de cada pin nuevo
+const coreSedes = window.DATA_CORE.features.map(f => ({
+  nombre: f.properties.sede,
+  lat: f.geometry.coordinates[1],
+  lon: f.geometry.coordinates[0]
+}));
+
+function sedeMasCercana(lat, lon) {
+  const p = L.latLng(lat, lon);
+  let mejor = null, mejorDist = Infinity;
+  coreSedes.forEach(s => {
+    const d = p.distanceTo(L.latLng(s.lat, s.lon));
+    if (d < mejorDist) { mejorDist = d; mejor = s; }
+  });
+  return { sede: mejor, distancia: mejorDist };
+}
 
 function actualizarListaPines() {
   const cont = document.getElementById('addr-pins-list');
@@ -488,6 +505,7 @@ function actualizarListaPines() {
     el.addEventListener('click', () => {
       const id = el.getAttribute('data-pin-id');
       pinsLayer.removeLayer(pinsById[id].marker);
+      if (pinsById[id].proxLine) pinsLayer.removeLayer(pinsById[id].proxLine);
       delete pinsById[id];
       actualizarListaPines();
     });
@@ -502,6 +520,20 @@ function agregarPin(lat, lon, label) {
     <div class="popup-row" style="color:var(--muted); font-size:11px;">${lat.toFixed(5)}, ${lon.toFixed(5)}</div>
   `);
   pinsById[id] = { marker, label };
+
+  // Chequeo de proximidad a sedes CORE (≤1000m => línea roja con la distancia)
+  const { sede, distancia } = sedeMasCercana(lat, lon);
+  if (sede && distancia <= 1000) {
+    const proxLine = L.polyline([[lat, lon], [sede.lat, sede.lon]], {
+      color: '#FF3D3D', weight: 2, dashArray: '6,4', opacity: 0.85
+    }).addTo(pinsLayer);
+    const metros = Math.round(distancia);
+    proxLine.bindTooltip(`${metros}m de CORE ${sede.nombre}`, {
+      permanent: true, direction: 'center', className: 'dist-label warning'
+    });
+    pinsById[id].proxLine = proxLine;
+  }
+
   actualizarListaPines();
   map.setView([lat, lon], 16);
   marker.openPopup();
@@ -582,4 +614,74 @@ map.on('contextmenu', async (e) => {
       actualizarListaPines();
     }
   }
+});
+
+// ---------- Medir distancia (A -> B) ----------
+const medicionLayer = L.layerGroup().addTo(map);
+let midiendo = false;
+let puntoA = null;
+let markerA = null;
+
+const btnMedir = document.getElementById('btn-medir');
+const medirStatus = document.getElementById('medir-status');
+const btnClearMedicion = document.getElementById('btn-clear-medicion');
+
+function iniciarMedicion() {
+  midiendo = true;
+  puntoA = null;
+  btnMedir.classList.add('active');
+  medirStatus.textContent = 'Hacé click en el primer punto del mapa.';
+}
+
+function cancelarModoMedicion() {
+  midiendo = false;
+  btnMedir.classList.remove('active');
+}
+
+btnMedir.addEventListener('click', () => {
+  if (midiendo) {
+    cancelarModoMedicion();
+    medirStatus.textContent = '';
+  } else {
+    iniciarMedicion();
+  }
+});
+
+map.on('click', (e) => {
+  if (!midiendo) return;
+
+  if (!puntoA) {
+    puntoA = e.latlng;
+    markerA = L.circleMarker(puntoA, {
+      radius: 5, color: '#FFD23F', fillColor: '#FFD23F', fillOpacity: 1, weight: 2
+    }).addTo(medicionLayer);
+    medirStatus.textContent = 'Ahora hacé click en el segundo punto.';
+    return;
+  }
+
+  const puntoB = e.latlng;
+  const markerB = L.circleMarker(puntoB, {
+    radius: 5, color: '#FFD23F', fillColor: '#FFD23F', fillOpacity: 1, weight: 2
+  }).addTo(medicionLayer);
+
+  const linea = L.polyline([puntoA, puntoB], {
+    color: '#FFD23F', weight: 2.5, dashArray: '8,5', opacity: 0.9
+  }).addTo(medicionLayer);
+
+  const distancia = puntoA.distanceTo(puntoB);
+  const label = distancia >= 1000
+    ? `${(distancia / 1000).toFixed(2)} km`
+    : `${Math.round(distancia)} m`;
+  linea.bindTooltip(label, { permanent: true, direction: 'center', className: 'dist-label' });
+
+  medirStatus.textContent = `Distancia: ${label} (~${Math.round(distancia / 100)} cuadras)`;
+  btnClearMedicion.style.display = 'block';
+
+  cancelarModoMedicion();
+});
+
+btnClearMedicion.addEventListener('click', () => {
+  medicionLayer.clearLayers();
+  medirStatus.textContent = '';
+  btnClearMedicion.style.display = 'none';
 });

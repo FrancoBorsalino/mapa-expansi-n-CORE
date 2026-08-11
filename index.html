@@ -243,6 +243,23 @@ main {
 }
 .addr-pin-item .remove-pin:hover { color: var(--orange); }
 
+#btn-medir.active {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: white;
+}
+.dist-label {
+  background: rgba(17,17,17,0.9);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: .2rem .45rem;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.dist-label.warning { color: #FF6B6B; border-color: #FF3D3D; }
+
 /* CORE marker (divIcon, fixed pixel size regardless of zoom) */
 .core-marker { background: transparent; border: none; }
 .core-marker-circle {
@@ -294,6 +311,20 @@ main {
       <button id="btn-clear-pins" style="display:none; width:100%; background:transparent; border:1px solid var(--border); color:var(--muted); padding:.4rem .6rem; border-radius:6px; font-size:11px; cursor:pointer; margin-top:.5rem;">
         Borrar todos los pines
       </button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Herramientas</div>
+      <button id="btn-medir" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.5rem .7rem; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; transition: background .15s, border-color .15s;">
+        📏 Medir distancia (A → B)
+      </button>
+      <div id="medir-status" style="font-size:11px; color:var(--muted); margin-top:.5rem; line-height:1.4;"></div>
+      <button id="btn-clear-medicion" style="display:none; width:100%; background:transparent; border:1px solid var(--border); color:var(--muted); padding:.4rem .6rem; border-radius:6px; font-size:11px; cursor:pointer; margin-top:.5rem;">
+        Borrar medición
+      </button>
+      <div style="font-size:10.5px; color:var(--muted); line-height:1.4; margin-top:.6rem;">
+        Los pines (búsqueda o click derecho) marcan en <span style="color:#FF3D3D;">rojo</span> la distancia a la sede CORE más cercana cuando están a ≤1.000m (~10 cuadras).
+      </div>
     </div>
 
     <button id="btn-reset-layers" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.6rem .8rem; border-radius:8px; font-size:12px; font-weight:500; letter-spacing:.03em; cursor:pointer; margin-bottom:1.25rem; transition: background .15s, border-color .15s;" onmouseover="this.style.background='var(--mid)'" onmouseout="this.style.background='var(--bg3)'">
