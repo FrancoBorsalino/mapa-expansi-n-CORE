@@ -487,12 +487,12 @@ function sedeMasCercana(lat, lon) {
 // ---------- Radio de 10km por sede (capa apagada por default) ----------
 const radios10kmLayer = L.layerGroup(
   coreSedes.map(s => L.circle([s.lat, s.lon], {
-    radius: 10000,
+    radius: 1000,
     color: '#FF5C33',
     weight: 1.2,
     opacity: 0.6,
     fill: false
-  }).bindTooltip(`10km desde CORE ${s.nombre}`, { sticky: true }))
+  }).bindTooltip(`1km desde CORE ${s.nombre}`, { sticky: true }))
 );
 toggleLayer('chk-radio10km', radios10kmLayer);
 
