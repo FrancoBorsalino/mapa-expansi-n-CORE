@@ -697,3 +697,189 @@ btnClearMedicion.addEventListener('click', () => {
   medirStatus.textContent = '';
   btnClearMedicion.style.display = 'none';
 });
+
+// ---------- Desplegable de Herramientas ----------
+const herramientasBody = document.getElementById('herramientas-body');
+const herramientasArrow = document.getElementById('herramientas-arrow');
+document.getElementById('toggle-herramientas').addEventListener('click', () => {
+  const abierto = herramientasBody.style.display === 'block';
+  herramientasBody.style.display = abierto ? 'none' : 'block';
+  herramientasArrow.style.transform = abierto ? 'rotate(0deg)' : 'rotate(180deg)';
+});
+
+// ---------- Radio personalizado ----------
+const radioPersonalizadoLayer = L.layerGroup().addTo(map);
+let modoRadio = false;
+const btnRadio = document.getElementById('btn-radio');
+const radioStatus = document.getElementById('radio-status');
+const btnClearRadios = document.getElementById('btn-clear-radios');
+
+btnRadio.addEventListener('click', () => {
+  modoRadio = !modoRadio;
+  btnRadio.classList.toggle('active', modoRadio);
+  radioStatus.textContent = modoRadio ? 'Hacé click en el mapa para ubicar el centro.' : '';
+});
+
+map.on('click', (e) => {
+  if (!modoRadio) return;
+  const metrosTxt = window.prompt('Radio en metros (ej: 500):', '500');
+  modoRadio = false;
+  btnRadio.classList.remove('active');
+  const metros = parseFloat(metrosTxt);
+  if (!metrosTxt || isNaN(metros) || metros <= 0) {
+    radioStatus.textContent = '';
+    return;
+  }
+  const circulo = L.circle(e.latlng, {
+    radius: metros, color: '#4CE0AF', weight: 1.5, fillColor: '#4CE0AF', fillOpacity: 0.12
+  }).addTo(radioPersonalizadoLayer);
+  const label = metros >= 1000 ? `${(metros/1000).toFixed(2)}km` : `${Math.round(metros)}m`;
+  circulo.bindTooltip(`Radio ${label}`, { sticky: true });
+  radioStatus.textContent = `Último radio: ${label}`;
+  btnClearRadios.style.display = 'block';
+});
+
+btnClearRadios.addEventListener('click', () => {
+  radioPersonalizadoLayer.clearLayers();
+  radioStatus.textContent = '';
+  btnClearRadios.style.display = 'none';
+});
+
+// ---------- Dibujo de zonas (persistente en localStorage + export/import) ----------
+const LS_DIBUJOS_KEY = 'core_mapa_dibujos_v1';
+const drawnItems = new L.FeatureGroup().addTo(map);
+const dibujoStatus = document.getElementById('dibujo-status');
+
+function estiloZonaDibujada() {
+  return { color: '#A78BFA', weight: 2, fillColor: '#A78BFA', fillOpacity: 0.22 };
+}
+
+function bindZonaPopup(layer, label) {
+  layer._zonaLabel = label || 'Zona sin nombre';
+  layer.bindPopup(() => `
+    <div class="popup-title">✏️ ${layer._zonaLabel}</div>
+    <div class="popup-row" style="margin-top:4px;">
+      <span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-zona-${L.Util.stamp(layer)}">✕ Borrar esta zona</span>
+    </div>
+  `);
+  layer.on('popupopen', () => {
+    const btn = document.getElementById(`borrar-zona-${L.Util.stamp(layer)}`);
+    if (btn) btn.addEventListener('click', () => {
+      drawnItems.removeLayer(layer);
+      guardarDibujos();
+      map.closePopup();
+    });
+  });
+}
+
+function guardarDibujos() {
+  try {
+    localStorage.setItem(LS_DIBUJOS_KEY, JSON.stringify(drawnItems.toGeoJSON()));
+  } catch (err) {
+    dibujoStatus.textContent = 'No se pudo guardar (almacenamiento del navegador lleno o bloqueado).';
+  }
+}
+
+function cargarDibujos() {
+  try {
+    const raw = localStorage.getItem(LS_DIBUJOS_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    L.geoJSON(data, {
+      style: estiloZonaDibujada,
+      onEachFeature: (f, layer) => bindZonaPopup(layer, f.properties && f.properties.label)
+    }).eachLayer(l => drawnItems.addLayer(l));
+  } catch (err) {
+    console.warn('No se pudieron cargar los dibujos guardados', err);
+  }
+}
+cargarDibujos();
+
+// Dibujar zona (polígono)
+const drawPolygonHandler = new L.Draw.Polygon(map, {
+  shapeOptions: estiloZonaDibujada(),
+  showArea: true
+});
+const btnDibujar = document.getElementById('btn-dibujar');
+btnDibujar.addEventListener('click', () => {
+  if (btnDibujar.classList.contains('active')) {
+    drawPolygonHandler.disable();
+    btnDibujar.classList.remove('active');
+  } else {
+    drawPolygonHandler.enable();
+    btnDibujar.classList.add('active');
+  }
+});
+
+map.on(L.Draw.Event.CREATED, (e) => {
+  const layer = e.layer;
+  layer.setStyle && layer.setStyle(estiloZonaDibujada());
+  const label = window.prompt('Nombre para esta zona (ej: "Vacante - Villa Urquiza"):', '') || 'Zona sin nombre';
+  bindZonaPopup(layer, label);
+  layer.feature = { type: 'Feature', properties: { label } };
+  drawnItems.addLayer(layer);
+  guardarDibujos();
+  btnDibujar.classList.remove('active');
+  dibujoStatus.textContent = `Zona "${label}" guardada.`;
+});
+
+// Editar formas (arrastrar vértices)
+const editHandler = new L.EditToolbar.Edit(map, { featureGroup: drawnItems });
+const btnEditar = document.getElementById('btn-editar-dibujos');
+btnEditar.addEventListener('click', () => {
+  if (btnEditar.classList.contains('active')) {
+    editHandler.save();
+    editHandler.disable();
+    btnEditar.classList.remove('active');
+    btnEditar.innerHTML = '🖊️<br>Editar formas';
+    guardarDibujos();
+    dibujoStatus.textContent = 'Cambios guardados.';
+  } else {
+    editHandler.enable();
+    btnEditar.classList.add('active');
+    btnEditar.innerHTML = '✅<br>Listo (guardar)';
+    dibujoStatus.textContent = 'Arrastrá los vértices para modificar la forma.';
+  }
+});
+
+// Exportar dibujos
+document.getElementById('btn-exportar-dibujos').addEventListener('click', () => {
+  const data = drawnItems.toGeoJSON();
+  if (!data.features.length) {
+    dibujoStatus.textContent = 'No hay zonas dibujadas para exportar.';
+    return;
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/geo+json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const fecha = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `core_dibujos_${fecha}.geojson`;
+  a.click();
+  URL.revokeObjectURL(url);
+  dibujoStatus.textContent = 'Dibujos exportados.';
+});
+
+// Importar dibujos
+const inputImportar = document.getElementById('input-importar-dibujos');
+document.getElementById('btn-importar-dibujos').addEventListener('click', () => inputImportar.click());
+inputImportar.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      L.geoJSON(data, {
+        style: estiloZonaDibujada,
+        onEachFeature: (f, layer) => bindZonaPopup(layer, f.properties && f.properties.label)
+      }).eachLayer(l => drawnItems.addLayer(l));
+      guardarDibujos();
+      dibujoStatus.textContent = 'Dibujos importados y sumados a los existentes.';
+    } catch (err) {
+      dibujoStatus.textContent = 'El archivo no es un geojson válido.';
+    }
+    inputImportar.value = '';
+  };
+  reader.readAsText(file);
+});

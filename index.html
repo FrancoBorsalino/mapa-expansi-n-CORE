@@ -9,6 +9,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@700&family=Roboto:wght@300;400;500;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <style>
 :root {
   --orange:  #FF5C33;
@@ -260,6 +262,41 @@ main {
 }
 .dist-label.warning { color: #FF6B6B; border-color: #FF3D3D; }
 
+.tool-btn-full {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: .5rem .6rem;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.tool-btn-full:hover { background: var(--mid); }
+.tool-btn-full.active { background: var(--orange); border-color: var(--orange); color: white; }
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .4rem;
+}
+.tool-btn {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: .45rem .3rem;
+  border-radius: 6px;
+  font-size: 10px;
+  line-height: 1.5;
+  cursor: pointer;
+  text-align: center;
+  transition: background .15s, border-color .15s;
+}
+.tool-btn:hover { background: var(--mid); }
+.tool-btn.active { background: var(--orange); border-color: var(--orange); color: white; }
+
 /* CORE marker (divIcon, fixed pixel size regardless of zoom) */
 .core-marker { background: transparent; border: none; }
 .core-marker-circle {
@@ -314,16 +351,40 @@ main {
     </div>
 
     <div class="panel">
-      <div class="panel-title">Herramientas</div>
-      <button id="btn-medir" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.5rem .7rem; border-radius:6px; font-size:12px; font-weight:500; cursor:pointer; transition: background .15s, border-color .15s;">
-        📏 Medir distancia (A → B)
-      </button>
-      <div id="medir-status" style="font-size:11px; color:var(--muted); margin-top:.5rem; line-height:1.4;"></div>
-      <button id="btn-clear-medicion" style="display:none; width:100%; background:transparent; border:1px solid var(--border); color:var(--muted); padding:.4rem .6rem; border-radius:6px; font-size:11px; cursor:pointer; margin-top:.5rem;">
-        Borrar medición
-      </button>
-      <div style="font-size:10.5px; color:var(--muted); line-height:1.4; margin-top:.6rem;">
-        Los pines (búsqueda o click derecho) marcan en <span style="color:#FF3D3D;">rojo</span> la distancia a la sede CORE más cercana cuando están a ≤1.000m (~10 cuadras).
+      <div class="panel-title" id="toggle-herramientas" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; user-select:none;">
+        <span>🛠️ Herramientas</span>
+        <span id="herramientas-arrow" style="transition: transform .2s; font-size:10px;">▼</span>
+      </div>
+
+      <div id="herramientas-body" style="display:none; margin-top:.6rem;">
+
+        <!-- Medir distancia -->
+        <button id="btn-medir" class="tool-btn-full">📏 Medir distancia (A→B)</button>
+        <div id="medir-status" style="font-size:10.5px; color:var(--muted); margin-top:.35rem; line-height:1.35;"></div>
+        <button id="btn-clear-medicion" class="tool-btn-full" style="display:none; margin-top:.35rem;">Borrar medición</button>
+
+        <hr style="border:none; border-top:1px solid var(--border); margin:.6rem 0;">
+
+        <!-- Radio personalizado -->
+        <button id="btn-radio" class="tool-btn-full">⭕ Radio personalizado</button>
+        <div id="radio-status" style="font-size:10.5px; color:var(--muted); margin-top:.35rem; line-height:1.35;"></div>
+        <button id="btn-clear-radios" class="tool-btn-full" style="display:none; margin-top:.35rem;">Borrar radios</button>
+
+        <hr style="border:none; border-top:1px solid var(--border); margin:.6rem 0;">
+
+        <!-- Dibujo de zonas -->
+        <div class="tool-grid">
+          <button id="btn-dibujar" class="tool-btn">✏️<br>Dibujar zona</button>
+          <button id="btn-editar-dibujos" class="tool-btn">🖊️<br>Editar formas</button>
+          <button id="btn-exportar-dibujos" class="tool-btn">⬇️<br>Exportar</button>
+          <button id="btn-importar-dibujos" class="tool-btn">⬆️<br>Importar</button>
+        </div>
+        <input type="file" id="input-importar-dibujos" accept=".geojson,.json" style="display:none;">
+        <div id="dibujo-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
+
+        <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.5rem;">
+          Los dibujos se guardan en este navegador. Para verlos en otra compu, exportá y compartí el archivo.
+        </div>
       </div>
     </div>
 
