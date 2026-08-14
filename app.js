@@ -632,7 +632,8 @@ map.on('contextmenu', async (e) => {
 const medicionLayer = L.layerGroup().addTo(map);
 let midiendo = false;
 let puntoA = null;
-let markerA = null;
+let medicionCounter = 0;
+const medicionesById = {}; // id -> L.layerGroup con markerA+markerB+linea
 
 const btnMedir = document.getElementById('btn-medir');
 const medirStatus = document.getElementById('medir-status');
@@ -664,29 +665,42 @@ map.on('click', (e) => {
 
   if (!puntoA) {
     puntoA = e.latlng;
-    markerA = L.circleMarker(puntoA, {
-      radius: 5, color: '#FFD23F', fillColor: '#FFD23F', fillOpacity: 1, weight: 2
-    }).addTo(medicionLayer);
     medirStatus.textContent = 'Ahora hacé click en el segundo punto.';
     return;
   }
 
   const puntoB = e.latlng;
-  const markerB = L.circleMarker(puntoB, {
-    radius: 5, color: '#FFD23F', fillColor: '#FFD23F', fillOpacity: 1, weight: 2
-  }).addTo(medicionLayer);
+  const id = 'med' + (++medicionCounter);
+  const grupo = L.layerGroup().addTo(medicionLayer);
+
+  L.circleMarker(puntoA, { radius: 5, color: '#FFD23F', fillColor: '#FFD23F', fillOpacity: 1, weight: 2 }).addTo(grupo);
+  L.circleMarker(puntoB, { radius: 5, color: '#FFD23F', fillColor: '#FFD23F', fillOpacity: 1, weight: 2 }).addTo(grupo);
 
   const linea = L.polyline([puntoA, puntoB], {
     color: '#FFD23F', weight: 2.5, dashArray: '8,5', opacity: 0.9
-  }).addTo(medicionLayer);
+  }).addTo(grupo);
 
   const distancia = puntoA.distanceTo(puntoB);
   const label = distancia >= 1000
     ? `${(distancia / 1000).toFixed(2)} km`
     : `${Math.round(distancia)} m`;
   linea.bindTooltip(label, { permanent: true, direction: 'center', className: 'dist-label' });
+  linea.bindPopup(`
+    <div class="popup-title">📏 ${label}</div>
+    <div class="popup-row" style="margin-top:4px;"><span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-${id}">✕ Borrar esta medición</span></div>
+  `);
+  linea.on('popupopen', () => {
+    const btn = document.getElementById(`borrar-${id}`);
+    if (btn) btn.addEventListener('click', () => {
+      medicionLayer.removeLayer(grupo);
+      delete medicionesById[id];
+      map.closePopup();
+      if (Object.keys(medicionesById).length === 0) btnClearMedicion.style.display = 'none';
+    });
+  });
 
-  medirStatus.textContent = `Distancia: ${label} (~${Math.round(distancia / 100)} cuadras)`;
+  medicionesById[id] = grupo;
+  medirStatus.textContent = `Distancia: ${label} (~${Math.round(distancia / 100)} cuadras). Click en la línea para borrarla.`;
   btnClearMedicion.style.display = 'block';
 
   cancelarModoMedicion();
@@ -694,6 +708,7 @@ map.on('click', (e) => {
 
 btnClearMedicion.addEventListener('click', () => {
   medicionLayer.clearLayers();
+  Object.keys(medicionesById).forEach(id => delete medicionesById[id]);
   medirStatus.textContent = '';
   btnClearMedicion.style.display = 'none';
 });
@@ -710,6 +725,8 @@ document.getElementById('toggle-herramientas').addEventListener('click', () => {
 // ---------- Radio personalizado ----------
 const radioPersonalizadoLayer = L.layerGroup().addTo(map);
 let modoRadio = false;
+let radioCounter = 0;
+const radiosById = {}; // id -> L.circle
 const btnRadio = document.getElementById('btn-radio');
 const radioStatus = document.getElementById('radio-status');
 const btnClearRadios = document.getElementById('btn-clear-radios');
@@ -730,17 +747,33 @@ map.on('click', (e) => {
     radioStatus.textContent = '';
     return;
   }
+  const id = 'radio' + (++radioCounter);
   const circulo = L.circle(e.latlng, {
     radius: metros, color: '#4CE0AF', weight: 1.5, fillColor: '#4CE0AF', fillOpacity: 0.12
   }).addTo(radioPersonalizadoLayer);
   const label = metros >= 1000 ? `${(metros/1000).toFixed(2)}km` : `${Math.round(metros)}m`;
   circulo.bindTooltip(`Radio ${label}`, { sticky: true });
-  radioStatus.textContent = `Último radio: ${label}`;
+  circulo.bindPopup(`
+    <div class="popup-title">⭕ Radio ${label}</div>
+    <div class="popup-row" style="margin-top:4px;"><span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-${id}">✕ Borrar este radio</span></div>
+  `);
+  circulo.on('popupopen', () => {
+    const btn = document.getElementById(`borrar-${id}`);
+    if (btn) btn.addEventListener('click', () => {
+      radioPersonalizadoLayer.removeLayer(circulo);
+      delete radiosById[id];
+      map.closePopup();
+      if (Object.keys(radiosById).length === 0) btnClearRadios.style.display = 'none';
+    });
+  });
+  radiosById[id] = circulo;
+  radioStatus.textContent = `Último radio: ${label}. Click en el círculo para borrarlo.`;
   btnClearRadios.style.display = 'block';
 });
 
 btnClearRadios.addEventListener('click', () => {
   radioPersonalizadoLayer.clearLayers();
+  Object.keys(radiosById).forEach(id => delete radiosById[id]);
   radioStatus.textContent = '';
   btnClearRadios.style.display = 'none';
 });
@@ -748,6 +781,10 @@ btnClearRadios.addEventListener('click', () => {
 // ---------- Dibujo de zonas (persistente en localStorage + export/import) ----------
 const LS_DIBUJOS_KEY = 'core_mapa_dibujos_v1';
 const drawnItems = new L.FeatureGroup().addTo(map);
+document.getElementById('chk-zonas-dibujadas').addEventListener('change', e => {
+  if (e.target.checked) map.addLayer(drawnItems);
+  else map.removeLayer(drawnItems);
+});
 const dibujoStatus = document.getElementById('dibujo-status');
 
 function estiloZonaDibujada() {

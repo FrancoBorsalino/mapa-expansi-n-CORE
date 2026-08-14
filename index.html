@@ -373,7 +373,12 @@ main {
         <hr style="border:none; border-top:1px solid var(--border); margin:.6rem 0;">
 
         <!-- Dibujo de zonas -->
-        <div class="tool-grid">
+        <div class="layer-item" style="padding-left:0;">
+          <input type="checkbox" id="chk-zonas-dibujadas" checked>
+          <span class="swatch" style="background:#A78BFA;"></span>
+          <label for="chk-zonas-dibujadas">Mostrar zonas dibujadas</label>
+        </div>
+        <div class="tool-grid" style="margin-top:.5rem;">
           <button id="btn-dibujar" class="tool-btn">✏️<br>Dibujar zona</button>
           <button id="btn-editar-dibujos" class="tool-btn">🖊️<br>Editar formas</button>
           <button id="btn-exportar-dibujos" class="tool-btn">⬇️<br>Exportar</button>
