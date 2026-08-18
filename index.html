@@ -442,6 +442,19 @@ main {
     </div>
 
     <div class="panel">
+      <div class="panel-title">Locales comerciales</div>
+      <div class="layer-item">
+        <input type="checkbox" id="chk-locales" checked>
+        <span class="swatch" style="background:#FFD23F;"></span>
+        <label for="chk-locales">Locales cargados (scraper)</label>
+      </div>
+      <button id="btn-cargar-locales" class="tool-btn-full" style="margin-top:.5rem;">📂 Cargar GeoJSON</button>
+      <input type="file" id="input-locales" accept=".geojson,.json" style="display:none;">
+      <div id="locales-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
+      <button id="btn-quitar-locales" class="tool-btn-full" style="display:none; margin-top:.35rem;">Quitar capa cargada</button>
+    </div>
+
+    <div class="panel">
       <div class="panel-title">Contexto socioeconómico</div>
       <div class="layer-item">
         <input type="checkbox" id="chk-poder">

@@ -920,3 +920,122 @@ inputImportar.addEventListener('change', (e) => {
   };
   reader.readAsText(file);
 });
+
+// ---------- Locales comerciales (geojson externo, cargado por el usuario) ----------
+const LS_LOCALES_KEY = 'core_mapa_locales_v1';
+const localesLayer = L.layerGroup().addTo(map);
+const localesStatus = document.getElementById('locales-status');
+const btnQuitarLocales = document.getElementById('btn-quitar-locales');
+
+// Etiquetas lindas para las claves más comunes que suele traer un scraper
+// de portales inmobiliarios. Cualquier clave no listada igual se muestra,
+// solo que con el nombre tal cual viene (reemplazando guiones bajos).
+const LABELS_LOCALES = {
+  precio: 'Precio', valor: 'Precio', price: 'Precio',
+  direccion: 'Dirección', address: 'Dirección',
+  m2: 'Superficie', metros: 'Superficie', superficie: 'Superficie',
+  ambientes: 'Ambientes', dpto: 'Partido/Comuna', DPTO: 'Partido/Comuna',
+  fuente: 'Portal', portal: 'Portal', estado: 'Estado'
+};
+const CLAVES_LINK = ['link', 'url', 'enlace', 'aviso'];
+const CLAVES_OCULTAR = ['lat', 'lon', 'latitud', 'longitud', 'lng']; // ya están en la geometría
+
+function formatearValor(key, val) {
+  if (val === null || val === undefined || val === '') return null;
+  const s = String(val);
+  return s.length > 90 ? s.slice(0, 90) + '…' : s;
+}
+
+function propsToHtml(props) {
+  let filas = '';
+  let link = null;
+  Object.entries(props || {}).forEach(([key, val]) => {
+    const keyLower = key.toLowerCase();
+    if (CLAVES_OCULTAR.includes(keyLower)) return;
+    if (CLAVES_LINK.includes(keyLower) && val) { link = val; return; }
+    const formatted = formatearValor(key, val);
+    if (formatted === null) return;
+    const label = LABELS_LOCALES[keyLower] || key.replace(/_/g, ' ');
+    filas += `<div class="popup-row"><b>${label}:</b> ${formatted}</div>`;
+  });
+  if (link) {
+    filas += `<div class="popup-row" style="margin-top:4px;"><a href="${link}" target="_blank" rel="noopener" style="color:var(--orange);">Ver aviso original ↗</a></div>`;
+  }
+  return filas || '<div class="popup-row">Sin datos adicionales</div>';
+}
+
+function renderLocales(geojsonData) {
+  localesLayer.clearLayers();
+  let n = 0;
+  L.geoJSON(geojsonData, {
+    pointToLayer: (f, latlng) => {
+      n++;
+      return L.circleMarker(latlng, {
+        radius: 5, color: '#7a6300', fillColor: '#FFD23F', fillOpacity: 0.9, weight: 1.5
+      });
+    },
+    onEachFeature: (f, layer) => {
+      const p = f.properties || {};
+      const nombre = p.direccion || p.nombre || p.address || 'Local comercial';
+      const html = propsToHtml(p);
+      layer.bindTooltip(`<div style="font-weight:600; color:var(--orange);">${nombre}</div>`, { sticky: true });
+      layer.bindPopup(`<div class="popup-title">🏢 ${nombre}</div>${html}`);
+    }
+  }).addTo(localesLayer);
+  return n;
+}
+
+function cargarLocalesGuardados() {
+  try {
+    const raw = localStorage.getItem(LS_LOCALES_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    const n = renderLocales(data);
+    localesStatus.textContent = `${n} locales cargados (guardado en este navegador).`;
+    btnQuitarLocales.style.display = 'block';
+  } catch (err) {
+    console.warn('No se pudo cargar la capa de locales guardada', err);
+  }
+}
+cargarLocalesGuardados();
+
+document.getElementById('btn-cargar-locales').addEventListener('click', () => {
+  document.getElementById('input-locales').click();
+});
+
+document.getElementById('input-locales').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      const n = renderLocales(data);
+      try {
+        localStorage.setItem(LS_LOCALES_KEY, JSON.stringify(data));
+      } catch (storageErr) {
+        localesStatus.textContent = `${n} locales cargados (no se pudo guardar para la próxima sesión: archivo muy grande).`;
+        btnQuitarLocales.style.display = 'block';
+        return;
+      }
+      localesStatus.textContent = `${n} locales cargados y guardados. Reemplaza la carga anterior.`;
+      btnQuitarLocales.style.display = 'block';
+    } catch (err) {
+      localesStatus.textContent = 'El archivo no es un geojson válido.';
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
+
+btnQuitarLocales.addEventListener('click', () => {
+  localesLayer.clearLayers();
+  localStorage.removeItem(LS_LOCALES_KEY);
+  localesStatus.textContent = '';
+  btnQuitarLocales.style.display = 'none';
+});
+
+document.getElementById('chk-locales').addEventListener('change', e => {
+  if (e.target.checked) map.addLayer(localesLayer);
+  else map.removeLayer(localesLayer);
+});
