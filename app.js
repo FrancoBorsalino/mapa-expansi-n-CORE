@@ -2,7 +2,7 @@
 
 const map = L.map('map', { zoomControl: true }).setView([-34.60, -58.45], 11);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_28jq_1_ec4565e452c8a31a09bc245d', {
   attribution: '&copy; OpenStreetMap &copy; CARTO',
   maxZoom: 19
 }).addTo(map);
