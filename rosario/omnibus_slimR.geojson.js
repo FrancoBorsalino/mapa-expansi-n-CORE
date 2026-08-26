@@ -1,0 +1,1 @@
+window.DATA_OMNIBUS_R = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"fna":"Terminal de Ómnibus Mariano Moreno","nam":"Mariano Moreno"},"geometry":{"type":"Point","coordinates":[-60.67137948,-32.93940788]}}]};
