@@ -2,7 +2,7 @@
 
 const map = L.map('map', { zoomControl: true }).setView([-34.60, -58.45], 11);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_28jq_1_ec4565e452c8a31a09bc245d', {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap &copy; CARTO',
   maxZoom: 19
 }).addTo(map);
@@ -302,7 +302,7 @@ function construirCapasRegion(region) {
       const p = f.properties;
       const segLabels = {1:'Alta',2:'Media alta',3:'Media'};
       const techo = p.segmento === 3 ? `<div class="popup-row" style="color:var(--muted); font-size:11px;">Techo por poder adquisitivo medio (no puede superar "Moderada")</div>` : '';
-      layer.bindPopup(`<div class="popup-title">Zona potencial — ${p.nivel}</div><div class="popup-row">Partido/Comuna: <b>${p.DPTO || ''}</b></div><div class="popup-row">Poder adquisitivo: ${segLabels[p.segmento] || p.segmento}</div><div class="popup-row">Población del radio: <b>${fmt(p.pob || 0)}</b></div><div class="popup-row">Riesgo de exclusión: ${p.incidencia} / 6</div><div class="popup-row">Puntaje: <b>${p.score}</b> / 9</div>${techo}`);
+      layer.bindPopup(`<div class="popup-title">Zona potencial — ${p.nivel}</div><div class="popup-row">Partido/Comuna: <b>${p.DPTO || ''}</b></div><div class="popup-row">Poder adquisitivo: ${segLabels[p.segmento] || p.segmento}</div><div class="popup-row">Densidad real: <b>${fmt(p.densidad_hab_km2 || 0)} hab/km²</b></div><div class="popup-row">Riesgo de exclusión: ${p.incidencia} / 6</div><div class="popup-row">Puntaje: <b>${p.score}</b> / 9</div>${techo}`);
     }
   });
   capasActivas['chk-zonaspotenciales'] = zonasPotencialesLayer;
