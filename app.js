@@ -676,10 +676,39 @@ function estiloZonaDibujada() { return { color: '#A78BFA', weight: 2, fillColor:
 
 function bindZonaPopup(layer, label) {
   layer._zonaLabel = label || 'Zona sin nombre';
-  layer.bindPopup(() => `<div class="popup-title">✏️ ${layer._zonaLabel}</div><div class="popup-row" style="margin-top:4px;"><span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-zona-${L.Util.stamp(layer)}">✕ Borrar esta zona</span></div>`);
+
+  // Etiqueta visible siempre sobre la zona (no hace falta hacer click)
+  if (layer._zonaTooltip) {
+    layer.setTooltipContent(layer._zonaLabel);
+  } else {
+    layer.bindTooltip(layer._zonaLabel, { permanent: true, direction: 'center', className: 'zona-label' });
+    layer._zonaTooltip = true;
+  }
+
+  layer.bindPopup(() => `
+    <div class="popup-title">✏️ ${layer._zonaLabel}</div>
+    <div class="popup-row" style="margin-top:4px; display:flex; gap:10px;">
+      <span class="remove-pin" style="cursor:pointer; color:var(--orange);" id="renombrar-zona-${L.Util.stamp(layer)}">✎ Renombrar</span>
+      <span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-zona-${L.Util.stamp(layer)}">✕ Borrar esta zona</span>
+    </div>
+  `);
   layer.on('popupopen', () => {
-    const btn = document.getElementById(`borrar-zona-${L.Util.stamp(layer)}`);
-    if (btn) btn.addEventListener('click', () => { drawnItems.removeLayer(layer); guardarDibujos(); map.closePopup(); });
+    const btnBorrar = document.getElementById(`borrar-zona-${L.Util.stamp(layer)}`);
+    if (btnBorrar) btnBorrar.addEventListener('click', () => { drawnItems.removeLayer(layer); guardarDibujos(); map.closePopup(); });
+
+    const btnRenombrar = document.getElementById(`renombrar-zona-${L.Util.stamp(layer)}`);
+    if (btnRenombrar) btnRenombrar.addEventListener('click', () => {
+      const nuevoNombre = window.prompt('Nuevo nombre para esta zona:', layer._zonaLabel);
+      if (nuevoNombre === null) return; // canceló
+      const label = nuevoNombre.trim() || 'Zona sin nombre';
+      layer._zonaLabel = label;
+      layer.feature = layer.feature || { type: 'Feature', properties: {} };
+      layer.feature.properties.label = label;
+      layer.setTooltipContent(label);
+      guardarDibujos();
+      map.closePopup();
+      dibujoStatus.textContent = `Zona renombrada a "${label}".`;
+    });
   });
 }
 
