@@ -594,6 +594,18 @@ main {
   </div>
 </main>
 
+<div id="zona-nombre-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:3000; align-items:center; justify-content:center;">
+  <div style="background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:1.25rem; width:320px; box-shadow:0 8px 24px rgba(0,0,0,0.5);">
+    <div id="zona-nombre-titulo" style="font-family:'Poppins',sans-serif; font-weight:600; color:var(--orange); font-size:14px; margin-bottom:.7rem;">Nombre de la zona</div>
+    <textarea id="zona-nombre-input" rows="3" placeholder="Ej: Vacante&#10;Villa Urquiza" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.6rem; border-radius:6px; font-size:13px; font-family:inherit; resize:vertical; outline:none;"></textarea>
+    <div style="font-size:10.5px; color:var(--muted); margin-top:.4rem;">Apretá Enter dentro del cuadro para bajar de renglón.</div>
+    <div style="display:flex; gap:.5rem; margin-top:1rem;">
+      <button id="zona-nombre-cancelar" style="flex:1; background:transparent; border:1px solid var(--border); color:var(--muted); padding:.5rem; border-radius:6px; font-size:12px; cursor:pointer;">Cancelar</button>
+      <button id="zona-nombre-guardar" style="flex:1; background:var(--orange); border:none; color:white; padding:.5rem; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <script src="logo_data.js"></script>
 <script src="app.js"></script>
 </body>

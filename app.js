@@ -674,19 +674,53 @@ const dibujoStatus = document.getElementById('dibujo-status');
 
 function estiloZonaDibujada() { return { color: '#A78BFA', weight: 2, fillColor: '#A78BFA', fillOpacity: 0.22 }; }
 
+// ---------- Modal de texto multilínea (para nombrar/renombrar zonas) ----------
+function pedirNombreZona(titulo, valorInicial) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('zona-nombre-overlay');
+    const input = document.getElementById('zona-nombre-input');
+    const tituloEl = document.getElementById('zona-nombre-titulo');
+    const btnGuardar = document.getElementById('zona-nombre-guardar');
+    const btnCancelar = document.getElementById('zona-nombre-cancelar');
+
+    tituloEl.textContent = titulo;
+    input.value = valorInicial || '';
+    overlay.style.display = 'flex';
+    input.focus();
+    input.select();
+
+    function limpiar() {
+      overlay.style.display = 'none';
+      btnGuardar.removeEventListener('click', onGuardar);
+      btnCancelar.removeEventListener('click', onCancelar);
+      input.removeEventListener('keydown', onKeydown);
+    }
+    function onGuardar() { const v = input.value; limpiar(); resolve(v); }
+    function onCancelar() { limpiar(); resolve(null); }
+    function onKeydown(e) {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { onGuardar(); }
+      else if (e.key === 'Escape') { onCancelar(); }
+    }
+    btnGuardar.addEventListener('click', onGuardar);
+    btnCancelar.addEventListener('click', onCancelar);
+    input.addEventListener('keydown', onKeydown);
+  });
+}
+
 function bindZonaPopup(layer, label) {
   layer._zonaLabel = label || 'Zona sin nombre';
+  const labelHtml = layer._zonaLabel.replace(/\n/g, '<br>');
 
   // Etiqueta visible siempre sobre la zona (no hace falta hacer click)
   if (layer._zonaTooltip) {
-    layer.setTooltipContent(layer._zonaLabel);
+    layer.setTooltipContent(labelHtml);
   } else {
-    layer.bindTooltip(layer._zonaLabel, { permanent: true, direction: 'center', className: 'zona-label' });
+    layer.bindTooltip(labelHtml, { permanent: true, direction: 'center', className: 'zona-label' });
     layer._zonaTooltip = true;
   }
 
   layer.bindPopup(() => `
-    <div class="popup-title">✏️ ${layer._zonaLabel}</div>
+    <div class="popup-title">✏️ ${labelHtml}</div>
     <div class="popup-row" style="margin-top:4px; display:flex; gap:10px;">
       <span class="remove-pin" style="cursor:pointer; color:var(--orange);" id="renombrar-zona-${L.Util.stamp(layer)}">✎ Renombrar</span>
       <span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-zona-${L.Util.stamp(layer)}">✕ Borrar esta zona</span>
@@ -697,17 +731,16 @@ function bindZonaPopup(layer, label) {
     if (btnBorrar) btnBorrar.addEventListener('click', () => { drawnItems.removeLayer(layer); guardarDibujos(); map.closePopup(); });
 
     const btnRenombrar = document.getElementById(`renombrar-zona-${L.Util.stamp(layer)}`);
-    if (btnRenombrar) btnRenombrar.addEventListener('click', () => {
-      const nuevoNombre = window.prompt('Nuevo nombre para esta zona:', layer._zonaLabel);
+    if (btnRenombrar) btnRenombrar.addEventListener('click', async () => {
+      map.closePopup();
+      const nuevoNombre = await pedirNombreZona('Renombrar zona', layer._zonaLabel);
       if (nuevoNombre === null) return; // canceló
       const label = nuevoNombre.trim() || 'Zona sin nombre';
-      layer._zonaLabel = label;
       layer.feature = layer.feature || { type: 'Feature', properties: {} };
       layer.feature.properties.label = label;
-      layer.setTooltipContent(label);
+      bindZonaPopup(layer, label);
       guardarDibujos();
-      map.closePopup();
-      dibujoStatus.textContent = `Zona renombrada a "${label}".`;
+      dibujoStatus.textContent = 'Zona renombrada.';
     });
   });
 }
@@ -734,16 +767,17 @@ btnDibujar.addEventListener('click', () => {
   else { drawPolygonHandler.enable(); btnDibujar.classList.add('active'); }
 });
 
-map.on(L.Draw.Event.CREATED, (e) => {
+map.on(L.Draw.Event.CREATED, async (e) => {
   const layer = e.layer;
   layer.setStyle && layer.setStyle(estiloZonaDibujada());
-  const label = window.prompt('Nombre para esta zona (ej: "Vacante - Villa Urquiza"):', '') || 'Zona sin nombre';
+  const nombre = await pedirNombreZona('Nombre de la zona', '');
+  const label = (nombre && nombre.trim()) || 'Zona sin nombre';
   bindZonaPopup(layer, label);
   layer.feature = { type: 'Feature', properties: { label } };
   drawnItems.addLayer(layer);
   guardarDibujos();
   btnDibujar.classList.remove('active');
-  dibujoStatus.textContent = `Zona "${label}" guardada.`;
+  dibujoStatus.textContent = `Zona "${label.replace(/\n/g, ' / ')}" guardada.`;
 });
 
 const editHandler = new L.EditToolbar.Edit(map, { featureGroup: drawnItems });
