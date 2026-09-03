@@ -908,3 +908,113 @@ btnQuitarLocales.addEventListener('click', () => {
 document.getElementById('chk-locales').addEventListener('change', e => {
   if (e.target.checked) map.addLayer(localesLayer); else map.removeLayer(localesLayer);
 });
+
+// ---------- Mapa de calor de clientes ----------
+// A propósito, esta capa NO se guarda en localStorage ni en ningún archivo
+// del repo: vive solo en memoria mientras dure la sesión del navegador,
+// por ser el dato más sensible de todos los que carga el mapa (ubicación
+// real de clientes). Se pierde al recargar la página, a propósito.
+let heatLayer = null;
+const heatmapStatus = document.getElementById('heatmap-status');
+const heatmapControles = document.getElementById('heatmap-controles');
+const btnQuitarHeatmap = document.getElementById('btn-quitar-heatmap');
+let heatPuntosActuales = [];
+
+function parseCSVSimple(text) {
+  const lineas = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+  if (!lineas.length) return [];
+  const headers = lineas[0].split(',').map(h => h.trim().toLowerCase().replace(/["']/g, ''));
+  const filas = [];
+  for (let i = 1; i < lineas.length; i++) {
+    const valores = lineas[i].split(',').map(v => v.trim().replace(/["']/g, ''));
+    const fila = {};
+    headers.forEach((h, idx) => { fila[h] = valores[idx]; });
+    filas.push(fila);
+  }
+  return filas;
+}
+
+function extraerPuntosDeCSV(text) {
+  const filas = parseCSVSimple(text);
+  const puntos = [];
+  filas.forEach(fila => {
+    const lat = parseFloat(fila.lat || fila.latitud || fila.latitude);
+    const lon = parseFloat(fila.lon || fila.lng || fila.longitud || fila.longitude);
+    const peso = parseFloat(fila.peso || fila.weight || fila.cantidad) || 1;
+    if (!isNaN(lat) && !isNaN(lon)) puntos.push([lat, lon, peso]);
+  });
+  return puntos;
+}
+
+function extraerPuntosDeGeoJSON(data) {
+  const puntos = [];
+  (data.features || []).forEach(f => {
+    if (!f.geometry || f.geometry.type !== 'Point') return;
+    const [lon, lat] = f.geometry.coordinates;
+    const p = f.properties || {};
+    const peso = parseFloat(p.peso || p.weight || p.cantidad) || 1;
+    puntos.push([lat, lon, peso]);
+  });
+  return puntos;
+}
+
+function renderHeatmap(puntos) {
+  if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
+  heatPuntosActuales = puntos;
+  const radio = parseInt(document.getElementById('heatmap-radio').value, 10);
+  const blur = parseInt(document.getElementById('heatmap-blur').value, 10);
+  heatLayer = L.heatLayer(puntos, { radius: radio, blur: blur, maxZoom: 17 });
+  if (document.getElementById('chk-heatmap').checked) heatLayer.addTo(map);
+  heatmapControles.style.display = 'block';
+  btnQuitarHeatmap.style.display = 'block';
+}
+
+document.getElementById('btn-cargar-heatmap').addEventListener('click', () => document.getElementById('input-heatmap').click());
+document.getElementById('input-heatmap').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      let puntos = [];
+      if (file.name.toLowerCase().endsWith('.csv')) {
+        puntos = extraerPuntosDeCSV(ev.target.result);
+      } else {
+        const data = JSON.parse(ev.target.result);
+        puntos = extraerPuntosDeGeoJSON(data);
+      }
+      if (!puntos.length) {
+        heatmapStatus.textContent = 'No se encontraron puntos válidos en el archivo. Revisá los nombres de columna (lat/lon).';
+        return;
+      }
+      renderHeatmap(puntos);
+      heatmapStatus.textContent = `${puntos.length} ubicaciones cargadas (solo en esta sesión, no se guardan).`;
+    } catch (err) {
+      heatmapStatus.textContent = 'No se pudo leer el archivo. Verificá que sea un CSV o GeoJSON válido.';
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById('heatmap-radio').addEventListener('input', (e) => {
+  document.getElementById('heatmap-radio-val').textContent = e.target.value;
+  if (heatLayer) renderHeatmap(heatPuntosActuales);
+});
+document.getElementById('heatmap-blur').addEventListener('input', (e) => {
+  document.getElementById('heatmap-blur-val').textContent = e.target.value;
+  if (heatLayer) renderHeatmap(heatPuntosActuales);
+});
+
+document.getElementById('chk-heatmap').addEventListener('change', e => {
+  if (!heatLayer) return;
+  if (e.target.checked) map.addLayer(heatLayer); else map.removeLayer(heatLayer);
+});
+
+btnQuitarHeatmap.addEventListener('click', () => {
+  if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
+  heatPuntosActuales = [];
+  heatmapStatus.textContent = '';
+  heatmapControles.style.display = 'none';
+  btnQuitarHeatmap.style.display = 'none';
+});

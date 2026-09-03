@@ -11,6 +11,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <style>
 :root {
   --orange:  #FF5C33;
@@ -515,6 +516,30 @@ main {
       <input type="file" id="input-locales" accept=".geojson,.json" style="display:none;">
       <div id="locales-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
       <button id="btn-quitar-locales" class="tool-btn-full" style="display:none; margin-top:.35rem;">Quitar capa cargada</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">🔥 Mapa de calor de clientes</div>
+      <div class="layer-item">
+        <input type="checkbox" id="chk-heatmap" checked>
+        <span class="swatch" style="background:radial-gradient(circle, #FF3D3D, transparent);"></span>
+        <label for="chk-heatmap">Densidad de clientes</label>
+      </div>
+      <button id="btn-cargar-heatmap" class="tool-btn-full" style="margin-top:.5rem;">📂 Cargar CSV / GeoJSON</button>
+      <input type="file" id="input-heatmap" accept=".csv,.geojson,.json" style="display:none;">
+      <div id="heatmap-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
+      <button id="btn-quitar-heatmap" class="tool-btn-full" style="display:none; margin-top:.35rem;">Quitar capa cargada</button>
+
+      <div id="heatmap-controles" style="display:none; margin-top:.6rem;">
+        <div style="font-size:10.5px; color:var(--muted); margin-bottom:.2rem;">Radio: <span id="heatmap-radio-val">25</span>px</div>
+        <input type="range" id="heatmap-radio" min="8" max="60" value="25" style="width:100%; accent-color:var(--orange);">
+        <div style="font-size:10.5px; color:var(--muted); margin:.4rem 0 .2rem;">Difuminado: <span id="heatmap-blur-val">15</span>px</div>
+        <input type="range" id="heatmap-blur" min="2" max="40" value="15" style="width:100%; accent-color:var(--orange);">
+      </div>
+
+      <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.5rem;">
+        Esta capa <b>no se guarda</b> en el navegador ni en el repo — se carga solo en esta sesión y desaparece al recargar la página. Formato CSV: columnas <code>lat</code>/<code>lon</code> (o <code>latitud</code>/<code>longitud</code>), opcional <code>peso</code>.
+      </div>
     </div>
 
     <div class="panel">
