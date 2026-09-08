@@ -174,6 +174,53 @@ function toggleLayerDinamico(chkId, layer) {
 }
 
 // ---------- Construcción de capas para una región ----------
+// ---------- Saturación: cuántas sedes se superponen en cada punto (grilla) ----------
+// Arma una grilla invisible sobre la zona de las sedes y, para cada celda,
+// cuenta cuántos radios de 1km la cubren. Más superposición = color más
+// intenso. Se calcula una sola vez por región (client-side, no depende de
+// ningún archivo generado por mí) así que si el día de mañana se suman o
+// sacan sedes, se recalcula solo.
+function calcularCapaSaturacion(sedes) {
+  const capa = L.layerGroup();
+  if (!sedes.length) return capa;
+
+  const RADIO_M = 1000;
+  const ESPACIADO_M = 400; // resolución de la grilla; más chico = más fino pero más lento
+  const MARGEN_DEG = 0.015;
+
+  const lats = sedes.map(s => s.lat), lons = sedes.map(s => s.lon);
+  const latMin = Math.min(...lats) - MARGEN_DEG, latMax = Math.max(...lats) + MARGEN_DEG;
+  const lonMin = Math.min(...lons) - MARGEN_DEG, lonMax = Math.max(...lons) + MARGEN_DEG;
+  const latCentro = (latMin + latMax) / 2;
+
+  const metrosPorGradoLat = 111320;
+  const metrosPorGradoLon = 111320 * Math.cos(latCentro * Math.PI / 180);
+  const pasoLat = ESPACIADO_M / metrosPorGradoLat;
+  const pasoLon = ESPACIADO_M / metrosPorGradoLon;
+
+  const colores = { 1: '#FCA35D', 2: '#FF7A3D', 3: '#FF3D3D', 4: '#B71C1C' };
+  const renderer = L.canvas({ padding: 0.3 });
+
+  for (let lat = latMin; lat <= latMax; lat += pasoLat) {
+    for (let lon = lonMin; lon <= lonMax; lon += pasoLon) {
+      let count = 0;
+      for (const s of sedes) {
+        const dLat = (lat - s.lat) * metrosPorGradoLat;
+        const dLon = (lon - s.lon) * metrosPorGradoLon;
+        if (Math.sqrt(dLat * dLat + dLon * dLon) <= RADIO_M) count++;
+        if (count >= 4) break; // no hace falta seguir, ya llegó al bucket máximo
+      }
+      if (count === 0) continue;
+      const color = colores[Math.min(count, 4)];
+      const bounds = [[lat - pasoLat / 2, lon - pasoLon / 2], [lat + pasoLat / 2, lon + pasoLon / 2]];
+      L.rectangle(bounds, { renderer, stroke: false, fillColor: color, fillOpacity: 0.4 })
+        .bindTooltip(count >= 4 ? '4+ sedes — zona saturada' : `${count} sede${count>1?'s':''} se superpone${count>1?'n':''} acá`, { sticky: true })
+        .addTo(capa);
+    }
+  }
+  return capa;
+}
+
 function construirCapasRegion(region) {
   const v = region.vars;
 
@@ -337,6 +384,11 @@ function construirCapasRegion(region) {
     }).bindTooltip(`1km desde CORE ${s.nombre}`, { sticky: true })));
     capasActivas['chk-radio10km'] = radios1kmLayer;
     toggleLayerDinamico('chk-radio10km', radios1kmLayer);
+
+    // saturación: grilla que cuenta cuántas sedes se superponen en cada punto
+    const saturacionLayer = calcularCapaSaturacion(coreSedes);
+    capasActivas['chk-saturacion'] = saturacionLayer;
+    toggleLayerDinamico('chk-saturacion', saturacionLayer);
   } else {
     if (panelCore) panelCore.style.display = 'none';
     coreSedes = [];
@@ -375,6 +427,12 @@ function poblarLeyendasEstaticas() {
   document.getElementById('chk-poder') && document.getElementById('chk-poder').addEventListener('change', e => legendPoder.classList.toggle('show', e.target.checked));
   document.getElementById('chk-densidad') && document.getElementById('chk-densidad').addEventListener('change', e => legendDensidad.classList.toggle('show', e.target.checked));
   document.getElementById('chk-riesgo') && document.getElementById('chk-riesgo').addEventListener('change', e => legendRiesgo.classList.toggle('show', e.target.checked));
+  const legendSaturacion = document.getElementById('legend-saturacion');
+  const chkSaturacion = document.getElementById('chk-saturacion');
+  if (legendSaturacion && chkSaturacion) {
+    legendSaturacion.classList.toggle('show', chkSaturacion.checked);
+    chkSaturacion.addEventListener('change', e => legendSaturacion.classList.toggle('show', e.target.checked));
+  }
 }
 
 // ---------- Cambio de región (tabs) ----------

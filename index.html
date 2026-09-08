@@ -477,6 +477,17 @@ main {
         <span class="swatch" style="background:transparent; border:2px solid #FF5C33; border-radius:50%;"></span>
         <label for="chk-radio10km">Radio de 1km por sede</label>
       </div>
+      <div class="layer-item" style="margin-top:.3rem;">
+        <input type="checkbox" id="chk-saturacion">
+        <span class="swatch" style="background:linear-gradient(90deg,#FCA35D,#B71C1C);"></span>
+        <label for="chk-saturacion">Saturación (solapamiento 1km)</label>
+      </div>
+      <div id="legend-saturacion" class="legend-box" style="margin-top:.5rem;">
+        <div class="legend-row"><span class="legend-swatch" style="background:#FCA35D;"></span>1 sede cerca</div>
+        <div class="legend-row"><span class="legend-swatch" style="background:#FF7A3D;"></span>2 sedes se superponen</div>
+        <div class="legend-row"><span class="legend-swatch" style="background:#FF3D3D;"></span>3 sedes se superponen</div>
+        <div class="legend-row"><span class="legend-swatch" style="background:#B71C1C;"></span>4+ sedes — zona saturada</div>
+      </div>
     </div>
 
     <div class="panel">
