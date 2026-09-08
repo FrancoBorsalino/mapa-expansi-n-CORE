@@ -1121,7 +1121,26 @@ document.getElementById('btn-mini-mapa').addEventListener('click', async () => {
   pipWindow.document.body.appendChild(mapDivEl);
   setTimeout(() => map.invalidateSize(), 50);
 
+  // Leaflet engancha el seguimiento del arrastre (mousemove/mouseup mientras
+  // mantenés click) al "document" de la ventana principal, porque ahí fue
+  // creado el mapa originalmente. Al mudar el mapa a la ventanita, esos
+  // eventos ocurren en OTRO documento y nunca llegan -- por eso el arrastre
+  // no funcionaba. Reenviamos esos eventos al documento principal mientras
+  // la ventanita esté abierta, para que Leaflet los siga escuchando bien.
+  const tiposAReenviar = ['mousemove', 'mouseup', 'touchmove', 'touchend'];
+  function reenviarEvento(e) {
+    const Ctor = e.type.startsWith('touch') ? pipWindow.TouchEvent : MouseEvent;
+    try {
+      document.dispatchEvent(new Ctor(e.type, e));
+    } catch (err) {
+      // algunos navegadores no permiten reconstruir TouchEvent 1:1; se ignora
+      // silenciosamente (el arrastre con mouse sigue funcionando igual)
+    }
+  }
+  tiposAReenviar.forEach(tipo => pipWindow.document.addEventListener(tipo, reenviarEvento));
+
   pipWindow.addEventListener('pagehide', () => {
+    tiposAReenviar.forEach(tipo => pipWindow.document.removeEventListener(tipo, reenviarEvento));
     // devolver el mapa a su lugar original en la pestaña principal
     mapWrapEl.insertBefore(mapDivEl, mapWrapEl.firstChild);
     if (placeholderEl) { placeholderEl.remove(); placeholderEl = null; }
