@@ -212,6 +212,26 @@ main {
 #map-wrap { flex: 1; position: relative; }
 #map { width: 100%; height: 100%; background: #ddd; }
 
+#btn-mini-mapa {
+  position: absolute;
+  bottom: 44px;
+  right: 12px;
+  z-index: 900;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(17,17,17,0.65);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, color .15s;
+}
+#btn-mini-mapa:hover { background: rgba(255,92,51,0.85); color: white; }
+
 #data-footer {
   position: absolute;
   bottom: 0;
@@ -624,6 +644,7 @@ main {
   <div id="map-wrap">
     <div id="map"></div>
     <div id="region-loader"><div class="box"><div class="spinner"></div>Cargando datos de la región…</div></div>
+    <button id="btn-mini-mapa" title="Abrir mini-mapa flotante (para usar mientras navegás otra página)">⧉</button>
     <div id="data-footer">
       Datos: Censo INDEC 2022 (densidad, poder adquisitivo, riesgo de exclusión) · RENABAP (barrios populares) · Transporte público (AMBA: BA Data, día hábil 2024 · Rosario/Córdoba: fuente 2021) · IGN (estaciones, universidades) · OpenStreetMap (competencia) — <b>pueden desactualizarse con el tiempo, verificar antes de decisiones de apertura.</b>
     </div>

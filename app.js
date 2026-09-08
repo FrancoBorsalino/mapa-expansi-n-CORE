@@ -1076,3 +1076,56 @@ btnQuitarHeatmap.addEventListener('click', () => {
   heatmapControles.style.display = 'none';
   btnQuitarHeatmap.style.display = 'none';
 });
+
+// ---------- Mini-mapa flotante (Document Picture-in-Picture) ----------
+// Solo Chrome/Edge soportan esta API. Abre una ventanita liviana, siempre
+// arriba de todo, con el mapa base navegable (pan/zoom libre) para poder
+// tenerla al lado mientras se navega otro sitio (Zonaprop, Argenprop, etc.).
+// No incluye buscador ni capas de datos a propósito -- es solo referencia
+// geográfica rápida, para eso ya está el mapa completo en la pestaña principal.
+let pipWindow = null;
+document.getElementById('btn-mini-mapa').addEventListener('click', async () => {
+  if (!('documentPictureInPicture' in window)) {
+    alert('El mini-mapa flotante solo funciona en Chrome o Edge (versiones recientes). En otros navegadores no está disponible.');
+    return;
+  }
+  if (pipWindow && !pipWindow.closed) {
+    pipWindow.focus();
+    return;
+  }
+
+  const centro = map.getCenter();
+  const zoom = map.getZoom();
+
+  pipWindow = await documentPictureInPicture.requestWindow({ width: 380, height: 380 });
+
+  // Copiamos el link de Leaflet CSS al documento de la ventanita flotante
+  const linkLeaflet = document.createElement('link');
+  linkLeaflet.rel = 'stylesheet';
+  linkLeaflet.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+  pipWindow.document.head.appendChild(linkLeaflet);
+
+  const style = pipWindow.document.createElement('style');
+  style.textContent = `
+    html, body { margin:0; padding:0; height:100%; background:#1a1a1a; }
+    #pip-map { width:100%; height:100%; }
+  `;
+  pipWindow.document.head.appendChild(style);
+
+  const div = pipWindow.document.createElement('div');
+  div.id = 'pip-map';
+  pipWindow.document.body.appendChild(div);
+
+  const scriptLeaflet = pipWindow.document.createElement('script');
+  scriptLeaflet.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+  scriptLeaflet.onload = () => {
+    const pipMap = pipWindow.L.map('pip-map', { zoomControl: true }).setView([centro.lat, centro.lng], zoom);
+    pipWindow.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_28jq_1_ec4565e452c8a31a09bc245d', {
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      maxZoom: 19
+    }).addTo(pipMap);
+  };
+  pipWindow.document.body.appendChild(scriptLeaflet);
+
+  pipWindow.addEventListener('pagehide', () => { pipWindow = null; });
+});
