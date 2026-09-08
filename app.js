@@ -1121,26 +1121,55 @@ document.getElementById('btn-mini-mapa').addEventListener('click', async () => {
   pipWindow.document.body.appendChild(mapDivEl);
   setTimeout(() => map.invalidateSize(), 50);
 
-  // Leaflet engancha el seguimiento del arrastre (mousemove/mouseup mientras
-  // mantenés click) al "document" de la ventana principal, porque ahí fue
-  // creado el mapa originalmente. Al mudar el mapa a la ventanita, esos
-  // eventos ocurren en OTRO documento y nunca llegan -- por eso el arrastre
-  // no funcionaba. Reenviamos esos eventos al documento principal mientras
-  // la ventanita esté abierta, para que Leaflet los siga escuchando bien.
-  const tiposAReenviar = ['mousemove', 'mouseup', 'touchmove', 'touchend'];
-  function reenviarEvento(e) {
-    const Ctor = e.type.startsWith('touch') ? pipWindow.TouchEvent : MouseEvent;
-    try {
-      document.dispatchEvent(new Ctor(e.type, e));
-    } catch (err) {
-      // algunos navegadores no permiten reconstruir TouchEvent 1:1; se ignora
-      // silenciosamente (el arrastre con mouse sigue funcionando igual)
-    }
+  // El sistema de arrastre nativo de Leaflet queda "escuchando" en la
+  // ventana principal (ahí fue creado el mapa), así que no reacciona bien
+  // a movimientos del mouse dentro de la ventanita nueva. En vez de tratar
+  // de reenviar eventos entre las dos ventanas (poco confiable), lo
+  // apagamos mientras el mapa está en la ventanita y lo reemplazamos por
+  // un arrastre manual simple que corre enteramente adentro de ella.
+  map.dragging.disable();
+  let arrastrando = false;
+  let ultimoPunto = null;
+
+  function puntoDeEvento(e) {
+    const p = e.touches ? e.touches[0] : e;
+    return { x: p.clientX, y: p.clientY };
   }
-  tiposAReenviar.forEach(tipo => pipWindow.document.addEventListener(tipo, reenviarEvento));
+  function onDown(e) {
+    arrastrando = true;
+    ultimoPunto = puntoDeEvento(e);
+    mapDivEl.style.cursor = 'grabbing';
+  }
+  function onMove(e) {
+    if (!arrastrando) return;
+    const p = puntoDeEvento(e);
+    const dx = p.x - ultimoPunto.x;
+    const dy = p.y - ultimoPunto.y;
+    ultimoPunto = p;
+    map.panBy([-dx, -dy], { animate: false });
+    e.preventDefault();
+  }
+  function onUp() {
+    arrastrando = false;
+    mapDivEl.style.cursor = '';
+  }
+
+  mapDivEl.addEventListener('mousedown', onDown);
+  mapDivEl.addEventListener('touchstart', onDown, { passive: true });
+  pipWindow.document.addEventListener('mousemove', onMove);
+  pipWindow.document.addEventListener('touchmove', onMove, { passive: false });
+  pipWindow.document.addEventListener('mouseup', onUp);
+  pipWindow.document.addEventListener('touchend', onUp);
 
   pipWindow.addEventListener('pagehide', () => {
-    tiposAReenviar.forEach(tipo => pipWindow.document.removeEventListener(tipo, reenviarEvento));
+    mapDivEl.removeEventListener('mousedown', onDown);
+    mapDivEl.removeEventListener('touchstart', onDown);
+    pipWindow.document.removeEventListener('mousemove', onMove);
+    pipWindow.document.removeEventListener('touchmove', onMove);
+    pipWindow.document.removeEventListener('mouseup', onUp);
+    pipWindow.document.removeEventListener('touchend', onUp);
+    map.dragging.enable(); // vuelve a la normalidad en la ventana principal
+
     // devolver el mapa a su lugar original en la pestaña principal
     mapWrapEl.insertBefore(mapDivEl, mapWrapEl.firstChild);
     if (placeholderEl) { placeholderEl.remove(); placeholderEl = null; }
