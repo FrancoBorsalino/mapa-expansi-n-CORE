@@ -1078,12 +1078,22 @@ btnQuitarHeatmap.addEventListener('click', () => {
 });
 
 // ---------- Mini-mapa flotante (Document Picture-in-Picture) ----------
-// Solo Chrome/Edge soportan esta API. Abre una ventanita liviana, siempre
-// arriba de todo, con el mapa base navegable (pan/zoom libre) para poder
-// tenerla al lado mientras se navega otro sitio (Zonaprop, Argenprop, etc.).
-// No incluye buscador ni capas de datos a propósito -- es solo referencia
-// geográfica rápida, para eso ya está el mapa completo en la pestaña principal.
+// Solo Chrome/Edge soportan esta API. En vez de crear un mapa nuevo vacío,
+// MOVEMOS el div real del mapa (con todas las capas que tengas prendidas
+// en ese momento, tal cual las ves) a la ventanita flotante -- es el mismo
+// objeto Leaflet, solo cambia dónde vive visualmente. Al cerrar la
+// ventanita, el mapa vuelve solo a su lugar en la pestaña principal.
 let pipWindow = null;
+const mapWrapEl = document.getElementById('map-wrap');
+const mapDivEl = document.getElementById('map');
+let placeholderEl = null;
+
+function copiarEstilosAPip(pipDoc) {
+  document.querySelectorAll('head link[rel="stylesheet"], head style').forEach(el => {
+    pipDoc.head.appendChild(el.cloneNode(true));
+  });
+}
+
 document.getElementById('btn-mini-mapa').addEventListener('click', async () => {
   if (!('documentPictureInPicture' in window)) {
     alert('El mini-mapa flotante solo funciona en Chrome o Edge (versiones recientes). En otros navegadores no está disponible.');
@@ -1094,38 +1104,28 @@ document.getElementById('btn-mini-mapa').addEventListener('click', async () => {
     return;
   }
 
-  const centro = map.getCenter();
-  const zoom = map.getZoom();
+  pipWindow = await documentPictureInPicture.requestWindow({ width: 380, height: 420 });
 
-  pipWindow = await documentPictureInPicture.requestWindow({ width: 380, height: 380 });
-
-  // Copiamos el link de Leaflet CSS al documento de la ventanita flotante
-  const linkLeaflet = document.createElement('link');
-  linkLeaflet.rel = 'stylesheet';
-  linkLeaflet.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-  pipWindow.document.head.appendChild(linkLeaflet);
-
+  copiarEstilosAPip(pipWindow.document);
   const style = pipWindow.document.createElement('style');
-  style.textContent = `
-    html, body { margin:0; padding:0; height:100%; background:#1a1a1a; }
-    #pip-map { width:100%; height:100%; }
-  `;
+  style.textContent = `html, body { margin:0; padding:0; height:100%; background:#1a1a1a; overflow:hidden; }`;
   pipWindow.document.head.appendChild(style);
 
-  const div = pipWindow.document.createElement('div');
-  div.id = 'pip-map';
-  pipWindow.document.body.appendChild(div);
+  // placeholder que queda en el lugar del mapa mientras está en la ventanita
+  placeholderEl = document.createElement('div');
+  placeholderEl.style.cssText = 'width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12px; text-align:center; padding:1rem;';
+  placeholderEl.innerHTML = 'El mapa está en la ventana flotante.<br>Cerrala para que vuelva acá.';
+  mapWrapEl.insertBefore(placeholderEl, mapWrapEl.firstChild);
 
-  const scriptLeaflet = pipWindow.document.createElement('script');
-  scriptLeaflet.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-  scriptLeaflet.onload = () => {
-    const pipMap = pipWindow.L.map('pip-map', { zoomControl: true }).setView([centro.lat, centro.lng], zoom);
-    pipWindow.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_28jq_1_ec4565e452c8a31a09bc245d', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      maxZoom: 19
-    }).addTo(pipMap);
-  };
-  pipWindow.document.body.appendChild(scriptLeaflet);
+  // mover el div real del mapa (con todas sus capas activas) a la ventanita
+  pipWindow.document.body.appendChild(mapDivEl);
+  setTimeout(() => map.invalidateSize(), 50);
 
-  pipWindow.addEventListener('pagehide', () => { pipWindow = null; });
+  pipWindow.addEventListener('pagehide', () => {
+    // devolver el mapa a su lugar original en la pestaña principal
+    mapWrapEl.insertBefore(mapDivEl, mapWrapEl.firstChild);
+    if (placeholderEl) { placeholderEl.remove(); placeholderEl = null; }
+    setTimeout(() => map.invalidateSize(), 50);
+    pipWindow = null;
+  });
 });
