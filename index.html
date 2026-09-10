@@ -582,10 +582,6 @@ main {
         <input type="file" id="input-importar-dibujos" accept=".geojson,.json" style="display:none;">
         <div id="dibujo-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
 
-        <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.5rem;">
-          Los dibujos se guardan en este navegador. Para verlos en otra compu, exportá y compartí el archivo.
-        </div>
-
         <hr style="border:none; border-top:1px solid var(--border); margin:.6rem 0;">
 
         <!-- Contorno de barrios -->
@@ -691,7 +687,7 @@ main {
         </div>
 
         <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.5rem;">
-          Esta capa <b>no se guarda</b> en el navegador ni en el repo — se carga solo en esta sesión y desaparece al recargar la página. Formato CSV: columnas <code>lat</code>/<code>lon</code> (o <code>latitud</code>/<code>longitud</code>), opcional <code>peso</code>.
+          CSV: columnas <code>lat</code>/<code>lon</code>, opcional <code>peso</code>.
         </div>
       </div>
     </div>
@@ -790,15 +786,11 @@ main {
 
         <button id="btn-detectar-barrio-busqueda" class="tool-btn-full">Detectar barrio (click en el mapa)</button>
         <div id="detectar-barrio-status-busqueda" class="detectar-barrio-box"></div>
-        <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.3rem; margin-bottom:.7rem;">
-          En CABA detecta el barrio exacto (48 oficiales). En Zona Norte solo hay límite oficial de partido (Vicente López, San Isidro, San Fernando, Tigre, Pilar) — ahí suma todas las localidades de ese partido a la vez, ya que Olivos/Martínez/Beccar/etc. no tienen límite oficial propio.
-        </div>
 
-        <div style="display:flex; gap:.5rem; margin-bottom:.6rem;">
+        <div style="display:flex; gap:.5rem; margin-bottom:.6rem; margin-top:.7rem;">
           <input id="portal-precio-max" type="text" inputmode="numeric" placeholder="Precio máx (ARS)" style="width:60%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.4rem .5rem; border-radius:6px; font-size:12px;">
           <input id="portal-m2-min" type="number" placeholder="m² mín" style="width:40%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.4rem .5rem; border-radius:6px; font-size:12px;">
         </div>
-        <div style="font-size:10px; color:var(--muted); margin-bottom:.6rem;">Ambos filtros son opcionales. En Zonaprop y MercadoLibre se aplican juntos (si cargás solo uno de los dos, no se agrega ningún filtro ahí). En Argenprop se aplican de forma independiente.</div>
 
         <div style="position:relative; margin-bottom:.5rem;">
           <input id="barrio-buscar" type="text" placeholder="Buscar barrio..." autocomplete="off"
@@ -820,10 +812,6 @@ main {
           <button id="btn-buscar-zonaprop" class="tool-btn-full">Buscar en Zonaprop</button>
           <button id="btn-buscar-argenprop" class="tool-btn-full" style="margin-top:.4rem;">Buscar en Argenprop</button>
           <button id="btn-buscar-ml" class="tool-btn-full" style="margin-top:.4rem;">Buscar en MercadoLibre</button>
-        </div>
-
-        <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.6rem;">
-          Siempre busca alquileres de locales comerciales. Abre la búsqueda ya armada en pestañas nuevas — no extrae ni descarga nada de esos sitios, solo arma el link. Zonaprop abre 1 sola pestaña con todos los barrios juntos. Argenprop y MercadoLibre abren 1 pestaña por grupo (CABA, y una por cada partido de Zona Norte que hayas tildado).
         </div>
       </div>
     </div>

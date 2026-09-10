@@ -1007,7 +1007,8 @@ function bindZonaPopup(layer, label) {
     const btnTildar = document.getElementById(idBotonTildar);
     if (btnTildar) btnTildar.addEventListener('click', () => {
       const n = tildarBarriosEnBuscador(layer._barriosDetectados || []);
-      dibujoStatus.textContent = `${n} barrio${n !== 1 ? 's' : ''} sumado${n !== 1 ? 's' : ''} a la búsqueda (tab Búsqueda).`;
+      const portalStatus = document.getElementById('portal-status');
+      if (portalStatus) portalStatus.textContent = `${n} barrio${n !== 1 ? 's' : ''} sumado${n !== 1 ? 's' : ''}.`;
       map.closePopup();
     });
   });
