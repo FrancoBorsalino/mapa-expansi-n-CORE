@@ -973,15 +973,17 @@ function bindZonaPopup(layer, label) {
     const barrios = layer._barriosDetectados || [];
     const filaBarrios = barrios.length
       ? `<div class="popup-row" style="margin-top:6px;">Barrios: <b>${barrios.join(', ')}</b></div>
-         <div class="popup-row" style="margin-top:4px;"><span class="remove-pin" style="cursor:pointer; color:var(--orange);" id="${idBotonTildar}">Sumar a la búsqueda</span></div>`
+         <div style="margin-top:8px;">
+           <span class="btn-sumar-busqueda" id="${idBotonTildar}">Sumar a la búsqueda</span>
+         </div>`
       : `<div class="popup-row" style="margin-top:6px; color:var(--muted); font-size:11px;">Sin barrios de CABA detectados acá (¿Zona Norte, o fuera de la Ciudad?).</div>`;
 
     return `
       <div class="popup-title">${labelHtml}</div>
       ${filaBarrios}
-      <div class="popup-row" style="margin-top:4px; display:flex; gap:10px;">
-        <span class="remove-pin" style="cursor:pointer; color:var(--orange);" id="renombrar-zona-${L.Util.stamp(layer)}">Renombrar</span>
+      <div class="popup-row" style="margin-top:8px; display:flex; gap:10px;">
         <span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-zona-${L.Util.stamp(layer)}">✕ Borrar esta zona</span>
+        <span class="remove-pin" style="cursor:pointer; color:var(--orange);" id="renombrar-zona-${L.Util.stamp(layer)}">Renombrar</span>
       </div>
     `;
   });
