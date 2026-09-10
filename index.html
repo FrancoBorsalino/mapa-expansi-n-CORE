@@ -480,21 +480,21 @@ main {
 
     <div class="panel">
       <div class="panel-title" id="toggle-herramientas" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; user-select:none;">
-        <span>🛠️ Herramientas</span>
+        <span>Herramientas</span>
         <span id="herramientas-arrow" style="transition: transform .2s; font-size:10px;">▼</span>
       </div>
 
       <div id="herramientas-body" style="display:none; margin-top:.6rem;">
 
         <!-- Medir distancia -->
-        <button id="btn-medir" class="tool-btn-full">📏 Medir distancia (A→B)</button>
+        <button id="btn-medir" class="tool-btn-full">Medir distancia (A→B)</button>
         <div id="medir-status" style="font-size:10.5px; color:var(--muted); margin-top:.35rem; line-height:1.35;"></div>
         <button id="btn-clear-medicion" class="tool-btn-full" style="display:none; margin-top:.35rem;">Borrar medición</button>
 
         <hr style="border:none; border-top:1px solid var(--border); margin:.6rem 0;">
 
         <!-- Radio personalizado -->
-        <button id="btn-radio" class="tool-btn-full">⭕ Radio personalizado</button>
+        <button id="btn-radio" class="tool-btn-full">Radio personalizado</button>
         <div id="radio-status" style="font-size:10.5px; color:var(--muted); margin-top:.35rem; line-height:1.35;"></div>
         <button id="btn-clear-radios" class="tool-btn-full" style="display:none; margin-top:.35rem;">Borrar radios</button>
 
@@ -507,10 +507,10 @@ main {
           <label for="chk-zonas-dibujadas">Mostrar zonas dibujadas</label>
         </div>
         <div class="tool-grid" style="margin-top:.5rem;">
-          <button id="btn-dibujar" class="tool-btn">✏️<br>Dibujar zona</button>
-          <button id="btn-editar-dibujos" class="tool-btn">🖊️<br>Editar formas</button>
-          <button id="btn-exportar-dibujos" class="tool-btn">⬇️<br>Exportar</button>
-          <button id="btn-importar-dibujos" class="tool-btn">⬆️<br>Importar</button>
+          <button id="btn-dibujar" class="tool-btn">Dibujar zona</button>
+          <button id="btn-editar-dibujos" class="tool-btn">Editar formas</button>
+          <button id="btn-exportar-dibujos" class="tool-btn">Exportar</button>
+          <button id="btn-importar-dibujos" class="tool-btn">Importar</button>
         </div>
         <input type="file" id="input-importar-dibujos" accept=".geojson,.json" style="display:none;">
         <div id="dibujo-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
@@ -602,7 +602,7 @@ main {
           <span class="swatch" style="background:radial-gradient(circle, #FF3D3D, transparent);"></span>
           <label for="chk-heatmap">Densidad</label>
         </div>
-        <button id="btn-cargar-heatmap" class="tool-btn-full" style="margin-top:.5rem;">📂 Cargar CSV / GeoJSON</button>
+        <button id="btn-cargar-heatmap" class="tool-btn-full" style="margin-top:.5rem;">Cargar CSV / GeoJSON</button>
         <input type="file" id="input-heatmap" accept=".csv,.geojson,.json" style="display:none;">
         <div id="heatmap-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
         <button id="btn-quitar-heatmap" class="tool-btn-full" style="display:none; margin-top:.35rem;">Quitar capa cargada</button>
@@ -716,7 +716,7 @@ main {
           <span class="swatch" style="background:#FFD23F;"></span>
           <label for="chk-locales">Locales cargados (scraper)</label>
         </div>
-        <button id="btn-cargar-locales" class="tool-btn-full" style="margin-top:.5rem;">📂 Cargar GeoJSON</button>
+        <button id="btn-cargar-locales" class="tool-btn-full" style="margin-top:.5rem;">Cargar GeoJSON</button>
         <input type="file" id="input-locales" accept=".geojson,.json" style="display:none;">
         <div id="locales-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
         <button id="btn-quitar-locales" class="tool-btn-full" style="display:none; margin-top:.35rem;">Quitar capa cargada</button>
@@ -731,7 +731,7 @@ main {
       <div class="panel-body" id="body-buscar-portales">
 
         <div style="display:flex; gap:.5rem; margin-bottom:.6rem;">
-          <input id="portal-precio-max" type="number" placeholder="Precio máx (ARS)" style="width:60%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.4rem .5rem; border-radius:6px; font-size:12px;">
+          <input id="portal-precio-max" type="text" inputmode="numeric" placeholder="Precio máx (ARS)" style="width:60%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.4rem .5rem; border-radius:6px; font-size:12px;">
           <input id="portal-m2-min" type="number" placeholder="m² mín" style="width:40%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.4rem .5rem; border-radius:6px; font-size:12px;">
         </div>
         <div style="font-size:10px; color:var(--muted); margin-bottom:.6rem;">Ambos filtros son opcionales. En Zonaprop y MercadoLibre se aplican juntos (si cargás solo uno de los dos, no se agrega ningún filtro ahí). En Argenprop se aplican de forma independiente.</div>

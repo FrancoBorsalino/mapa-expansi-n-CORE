@@ -1207,6 +1207,20 @@ document.querySelectorAll('.collapsible-header').forEach(header => {
 // extrae ni descarga nada de esos sitios, solo construye el link. Patrones
 // confirmados contra ejemplos reales armados con el scraper propio de CORE.
 // Siempre busca ALQUILER, nunca venta.
+// Formatea el campo de precio con puntos de miles a medida que se escribe
+// (ej: 1000 -> 1.000, 4500000 -> 4.500.000), guardando el valor "limpio"
+// (sin puntos) para armar las URLs.
+function soloDigitos(s) { return (s || '').replace(/\D/g, ''); }
+function conPuntosDeMiles(s) { return soloDigitos(s).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+
+const inputPrecioMax = document.getElementById('portal-precio-max');
+inputPrecioMax.addEventListener('input', (e) => {
+  const cursorAlFinal = e.target.selectionStart === e.target.value.length;
+  e.target.value = conPuntosDeMiles(e.target.value);
+  if (cursorAlFinal) e.target.setSelectionRange(e.target.value.length, e.target.value.length);
+});
+function valorPrecioMax() { return soloDigitos(inputPrecioMax.value); }
+
 function slugify(s) {
   return s.toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -1306,7 +1320,7 @@ document.getElementById('btn-buscar-zonaprop').addEventListener('click', () => {
   const status = document.getElementById('portal-status');
   if (!sel.length) { status.textContent = 'Marcá al menos un barrio.'; return; }
 
-  const precioMax = document.getElementById('portal-precio-max').value;
+  const precioMax = valorPrecioMax();
   const m2min = document.getElementById('portal-m2-min').value;
 
   let url = `https://www.zonaprop.com.ar/locales-comerciales-alquiler-${sel.map(b => b.slug).join('-')}`;
@@ -1326,7 +1340,7 @@ document.getElementById('btn-buscar-argenprop').addEventListener('click', () => 
   const status = document.getElementById('portal-status');
   if (!sel.length) { status.textContent = 'Marcá al menos un barrio.'; return; }
 
-  const precioMax = document.getElementById('portal-precio-max').value;
+  const precioMax = valorPrecioMax();
   const m2min = document.getElementById('portal-m2-min').value;
   const grupos = agruparPorPartido(sel);
   const claves = Object.keys(grupos);
@@ -1355,7 +1369,7 @@ document.getElementById('btn-buscar-ml').addEventListener('click', () => {
   const status = document.getElementById('portal-status');
   if (!sel.length) { status.textContent = 'Marcá al menos un barrio.'; return; }
 
-  const precioMax = document.getElementById('portal-precio-max').value;
+  const precioMax = valorPrecioMax();
   const m2min = document.getElementById('portal-m2-min').value;
   const grupos = agruparPorPartido(sel);
   const claves = Object.keys(grupos);
