@@ -23,13 +23,15 @@ const REGIONS = {
       'amba/densidad_slim.geojson.js', 'amba/poder_slim.geojson.js', 'amba/riesgo_slim.geojson.js',
       'amba/barrios_slim.geojson.js', 'amba/core_slim.geojson.js', 'amba/deportivos_slim.geojson.js',
       'amba/transporte_slim.geojson.js', 'amba/tren_slim.geojson.js', 'amba/omnibus_slim.geojson.js',
-      'amba/universidades_slim.geojson.js', 'amba/edusuperior_slim.geojson.js', 'amba/zonas_potenciales_slim.geojson.js'
+      'amba/universidades_slim.geojson.js', 'amba/edusuperior_slim.geojson.js', 'amba/zonas_potenciales_slim.geojson.js',
+      'amba/barrios_caba_slim.geojson.js'
     ],
     vars: {
       densidad: 'DATA_DENSIDAD', poder: 'DATA_PODER', riesgo: 'DATA_RIESGO', barrios: 'DATA_BARRIOS',
       core: 'DATA_CORE', deportivos: 'DATA_DEPORTIVOS', transporte: 'DATA_TRANSPORTE',
       tren: 'DATA_TREN', omnibus: 'DATA_OMNIBUS', universidades: 'DATA_UNIVERSIDADES',
-      edusuperior: 'DATA_EDUSUPERIOR', zonaspotenciales: 'DATA_ZONAS_POTENCIALES'
+      edusuperior: 'DATA_EDUSUPERIOR', zonaspotenciales: 'DATA_ZONAS_POTENCIALES',
+      barriosLimites: 'DATA_BARRIOS_CABA_LIMITES'
     }
   },
   rosario: {
@@ -145,6 +147,7 @@ let currentRegionKey = null;
 let regionLayerGroup = L.layerGroup().addTo(map); // contiene TODAS las capas de datos de la región activa
 let coreMarkers = []; // para reescalar íconos de sede en zoomend (solo AMBA)
 let coreSedes = [];   // usado por la herramienta de proximidad / radio de 1km
+let barriosCABA = []; // [{nombre, feature}], solo se llena en la región AMBA (límites oficiales, 48 barrios)
 
 const capasActivas = {}; // id checkbox -> L.Layer de la región actual
 
@@ -154,6 +157,7 @@ function limpiarRegionActual() {
   regionLayerGroup = L.layerGroup().addTo(map);
   coreMarkers = [];
   coreSedes = [];
+  barriosCABA = [];
   Object.keys(capasActivas).forEach(k => delete capasActivas[k]);
 }
 
@@ -377,6 +381,12 @@ function construirCapasRegion(region) {
     coreSedes = window[v.core].features.map(f => ({
       nombre: f.properties.sede, lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0]
     }));
+
+    if (v.barriosLimites && window[v.barriosLimites]) {
+      barriosCABA = window[v.barriosLimites].features.map(f => ({
+        nombre: f.properties.nombre, feature: f
+      }));
+    }
 
     // radio de 1km por sede
     const radios1kmLayer = L.layerGroup(coreSedes.map(s => L.circle([s.lat, s.lon], {
@@ -722,6 +732,76 @@ btnClearRadios.addEventListener('click', () => {
   btnClearRadios.style.display = 'none';
 });
 
+// ---------- Detectar barrio (click en el mapa / zona dibujada) ----------
+// Usa los límites oficiales de los 48 barrios de CABA (BA Data). Solo
+// tiene sentido en la región AMBA -- en Zona Norte no existe un polígono
+// oficial de barrio, por eso ahí no se puede detectar nada con esto.
+// A veces el nombre oficial del barrio no coincide con el que usan los
+// portales inmobiliarios para armar sus URLs -- acá van esas excepciones.
+const BARRIO_OFICIAL_A_SLUG_PORTAL = { 'paternal': 'la-paternal' };
+
+function slugParaPortal(nombreOficial) {
+  const slugBase = slugify(nombreOficial);
+  return BARRIO_OFICIAL_A_SLUG_PORTAL[slugBase] || slugBase;
+}
+
+function detectarBarrioEnPunto(lat, lon) {
+  if (!barriosCABA.length) return null;
+  const punto = turf.point([lon, lat]);
+  for (const b of barriosCABA) {
+    if (turf.booleanPointInPolygon(punto, b.feature)) return b.nombre;
+  }
+  return null;
+}
+
+function detectarBarriosEnZona(layer) {
+  if (!barriosCABA.length) return [];
+  let zonaGeoJSON;
+  try { zonaGeoJSON = layer.toGeoJSON(); } catch (err) { return []; }
+  const encontrados = [];
+  barriosCABA.forEach(b => {
+    try {
+      if (turf.booleanIntersects(zonaGeoJSON, b.feature)) encontrados.push(b.nombre);
+    } catch (err) { /* geometría rara, se ignora ese barrio */ }
+  });
+  return encontrados;
+}
+
+// Tilda en el checklist del buscador de portales (tab Búsqueda) los
+// barrios detectados, para no tener que hacerlo a mano uno por uno.
+function tildarBarriosEnBuscador(nombresBarrios) {
+  const slugsATildar = new Set(nombresBarrios.map(slugParaPortal));
+  let tildados = 0;
+  document.querySelectorAll('.chk-barrio-portal').forEach(chk => {
+    if (slugsATildar.has(chk.value)) { chk.checked = true; tildados++; }
+  });
+  return tildados;
+}
+
+let modoDetectarBarrio = false;
+const btnDetectarBarrio = document.getElementById('btn-detectar-barrio');
+const detectarBarrioStatus = document.getElementById('detectar-barrio-status');
+
+btnDetectarBarrio.addEventListener('click', () => {
+  if (currentRegionKey !== 'amba') {
+    detectarBarrioStatus.textContent = 'Esta herramienta solo funciona en la región AMBA.';
+    return;
+  }
+  modoDetectarBarrio = !modoDetectarBarrio;
+  btnDetectarBarrio.classList.toggle('active', modoDetectarBarrio);
+  detectarBarrioStatus.textContent = modoDetectarBarrio ? 'Hacé click en cualquier punto del mapa.' : '';
+});
+
+map.on('click', (e) => {
+  if (!modoDetectarBarrio) return;
+  const nombre = detectarBarrioEnPunto(e.latlng.lat, e.latlng.lng);
+  detectarBarrioStatus.textContent = nombre
+    ? `Barrio: ${nombre}`
+    : 'Ese punto no cayó dentro de ningún barrio de CABA (¿Zona Norte, o fuera de la Ciudad?).';
+  modoDetectarBarrio = false;
+  btnDetectarBarrio.classList.remove('active');
+});
+
 // ---------- Dibujo de zonas (persistente en localStorage + export/import) ----------
 const LS_DIBUJOS_KEY = 'core_mapa_dibujos_v1';
 const drawnItems = new L.FeatureGroup().addTo(map);
@@ -768,6 +848,13 @@ function pedirNombreZona(titulo, valorInicial) {
 function bindZonaPopup(layer, label) {
   layer._zonaLabel = label || 'Zona sin nombre';
   const labelHtml = layer._zonaLabel.replace(/\n/g, '<br>');
+  // si es una zona vieja (guardada antes de esta función) y ya tenemos los
+  // límites de barrios cargados, los calculamos recién ahora
+  if (layer._barriosDetectados === undefined && barriosCABA.length) {
+    layer._barriosDetectados = detectarBarriosEnZona(layer);
+  }
+  const barrios = layer._barriosDetectados || [];
+  const idBotonTildar = `tildar-barrios-${L.Util.stamp(layer)}`;
 
   // Etiqueta visible siempre sobre la zona (no hace falta hacer click)
   if (layer._zonaTooltip) {
@@ -777,8 +864,14 @@ function bindZonaPopup(layer, label) {
     layer._zonaTooltip = true;
   }
 
+  const filaBarrios = barrios.length
+    ? `<div class="popup-row" style="margin-top:6px;">Barrios: <b>${barrios.join(', ')}</b></div>
+       <div class="popup-row" style="margin-top:4px;"><span class="remove-pin" style="cursor:pointer; color:var(--orange);" id="${idBotonTildar}">Tildar estos barrios en Búsqueda</span></div>`
+    : '';
+
   layer.bindPopup(() => `
     <div class="popup-title">${labelHtml}</div>
+    ${filaBarrios}
     <div class="popup-row" style="margin-top:4px; display:flex; gap:10px;">
       <span class="remove-pin" style="cursor:pointer; color:var(--orange);" id="renombrar-zona-${L.Util.stamp(layer)}">Renombrar</span>
       <span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-zona-${L.Util.stamp(layer)}">✕ Borrar esta zona</span>
@@ -799,6 +892,13 @@ function bindZonaPopup(layer, label) {
       bindZonaPopup(layer, label);
       guardarDibujos();
       dibujoStatus.textContent = 'Zona renombrada.';
+    });
+
+    const btnTildar = document.getElementById(idBotonTildar);
+    if (btnTildar) btnTildar.addEventListener('click', () => {
+      const n = tildarBarriosEnBuscador(barrios);
+      dibujoStatus.textContent = `${n} barrio${n !== 1 ? 's' : ''} tildado${n !== 1 ? 's' : ''} en el buscador (tab Búsqueda).`;
+      map.closePopup();
     });
   });
 }
@@ -828,6 +928,7 @@ btnDibujar.addEventListener('click', () => {
 map.on(L.Draw.Event.CREATED, async (e) => {
   const layer = e.layer;
   layer.setStyle && layer.setStyle(estiloZonaDibujada());
+  layer._barriosDetectados = detectarBarriosEnZona(layer);
   const nombre = await pedirNombreZona('Nombre de la zona', '');
   const label = (nombre && nombre.trim()) || 'Zona sin nombre';
   bindZonaPopup(layer, label);
@@ -835,7 +936,8 @@ map.on(L.Draw.Event.CREATED, async (e) => {
   drawnItems.addLayer(layer);
   guardarDibujos();
   btnDibujar.classList.remove('active');
-  dibujoStatus.textContent = `Zona "${label.replace(/\n/g, ' / ')}" guardada.`;
+  const avisoBarrios = layer._barriosDetectados.length ? ` — barrios detectados: ${layer._barriosDetectados.join(', ')}` : '';
+  dibujoStatus.textContent = `Zona "${label.replace(/\n/g, ' / ')}" guardada${avisoBarrios}.`;
 });
 
 const editHandler = new L.EditToolbar.Edit(map, { featureGroup: drawnItems });

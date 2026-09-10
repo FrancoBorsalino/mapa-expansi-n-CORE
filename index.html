@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 <style>
 :root {
   --orange:  #FF5C33;
@@ -497,6 +498,15 @@ main {
         <button id="btn-radio" class="tool-btn-full">Radio personalizado</button>
         <div id="radio-status" style="font-size:10.5px; color:var(--muted); margin-top:.35rem; line-height:1.35;"></div>
         <button id="btn-clear-radios" class="tool-btn-full" style="display:none; margin-top:.35rem;">Borrar radios</button>
+
+        <hr style="border:none; border-top:1px solid var(--border); margin:.6rem 0;">
+
+        <!-- Detectar barrio -->
+        <button id="btn-detectar-barrio" class="tool-btn-full">Detectar barrio (click en el mapa)</button>
+        <div id="detectar-barrio-status" style="font-size:10.5px; color:var(--muted); margin-top:.35rem; line-height:1.35;"></div>
+        <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.4rem;">
+          Solo funciona en CABA (AMBA), con los 48 barrios oficiales. En Zona Norte no hay límites oficiales de barrio, solo de partido.
+        </div>
 
         <hr style="border:none; border-top:1px solid var(--border); margin:.6rem 0;">
 
