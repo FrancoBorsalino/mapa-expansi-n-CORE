@@ -779,27 +779,76 @@ function tildarBarriosEnBuscador(nombresBarrios) {
 }
 
 let modoDetectarBarrio = false;
-const btnDetectarBarrio = document.getElementById('btn-detectar-barrio');
-const detectarBarrioStatus = document.getElementById('detectar-barrio-status');
+const botonesDetectarBarrio = [
+  document.getElementById('btn-detectar-barrio'),
+  document.getElementById('btn-detectar-barrio-busqueda')
+];
+const statusDetectarBarrio = [
+  document.getElementById('detectar-barrio-status'),
+  document.getElementById('detectar-barrio-status-busqueda')
+];
 
-btnDetectarBarrio.addEventListener('click', () => {
+function setStatusDetectarBarrio(html, comoTexto) {
+  statusDetectarBarrio.forEach(el => { comoTexto ? (el.textContent = html) : (el.innerHTML = html); });
+}
+
+function toggleModoDetectarBarrio() {
   if (currentRegionKey !== 'amba') {
-    detectarBarrioStatus.textContent = 'Esta herramienta solo funciona en la región AMBA.';
+    setStatusDetectarBarrio('Esta herramienta solo funciona en la región AMBA.', true);
     return;
   }
   modoDetectarBarrio = !modoDetectarBarrio;
-  btnDetectarBarrio.classList.toggle('active', modoDetectarBarrio);
-  detectarBarrioStatus.textContent = modoDetectarBarrio ? 'Hacé click en cualquier punto del mapa.' : '';
-});
+  botonesDetectarBarrio.forEach(b => b.classList.toggle('active', modoDetectarBarrio));
+  setStatusDetectarBarrio(modoDetectarBarrio ? 'Hacé click en cualquier punto del mapa (si es dentro de una zona dibujada, detecta todos los barrios de esa zona).' : '', true);
+}
+botonesDetectarBarrio.forEach(b => b.addEventListener('click', toggleModoDetectarBarrio));
+
+// Busca si el click cayó dentro de alguna zona ya dibujada. Si es así,
+// devuelve TODOS los barrios de esa zona; si no, solo el barrio puntual
+// de ese lugar.
+function detectarEnClick(latlng) {
+  const punto = turf.point([latlng.lng, latlng.lat]);
+  let zonaTocada = null;
+  drawnItems.eachLayer(layer => {
+    if (zonaTocada) return;
+    try {
+      if (turf.booleanPointInPolygon(punto, layer.toGeoJSON())) zonaTocada = layer;
+    } catch (err) { /* geometría rara, se ignora */ }
+  });
+  if (zonaTocada) {
+    if (zonaTocada._barriosDetectados === undefined) {
+      zonaTocada._barriosDetectados = detectarBarriosEnZona(zonaTocada);
+    }
+    return { tipo: 'zona', nombres: zonaTocada._barriosDetectados, etiquetaZona: zonaTocada._zonaLabel };
+  }
+  const nombre = detectarBarrioEnPunto(latlng.lat, latlng.lng);
+  return { tipo: 'punto', nombres: nombre ? [nombre] : [] };
+}
 
 map.on('click', (e) => {
   if (!modoDetectarBarrio) return;
-  const nombre = detectarBarrioEnPunto(e.latlng.lat, e.latlng.lng);
-  detectarBarrioStatus.textContent = nombre
-    ? `Barrio: ${nombre}`
-    : 'Ese punto no cayó dentro de ningún barrio de CABA (¿Zona Norte, o fuera de la Ciudad?).';
+  const resultado = detectarEnClick(e.latlng);
+
+  if (!resultado.nombres.length) {
+    setStatusDetectarBarrio('No se detectó ningún barrio de CABA ahí (¿Zona Norte, zona sin barrios asignados, o fuera de la Ciudad?).', true);
+  } else {
+    const listaHtml = resultado.nombres.join(', ');
+    const introduccion = resultado.tipo === 'zona'
+      ? `Barrios en zona "${(resultado.etiquetaZona || 'sin nombre').replace(/\n/g, ' / ')}": `
+      : 'Barrio: ';
+    setStatusDetectarBarrio(
+      `${introduccion}<b>${listaHtml}</b> — <span class="remove-pin tildar-barrio-click" style="cursor:pointer; color:var(--orange);">Tildar en Búsqueda</span>`
+    );
+    document.querySelectorAll('.tildar-barrio-click').forEach(el => {
+      el.addEventListener('click', () => {
+        const n = tildarBarriosEnBuscador(resultado.nombres);
+        setStatusDetectarBarrio(`${n} barrio${n !== 1 ? 's' : ''} tildado${n !== 1 ? 's' : ''} en el buscador (tab Búsqueda).`, true);
+      });
+    });
+  }
+
   modoDetectarBarrio = false;
-  btnDetectarBarrio.classList.remove('active');
+  botonesDetectarBarrio.forEach(b => b.classList.remove('active'));
 });
 
 // ---------- Dibujo de zonas (persistente en localStorage + export/import) ----------

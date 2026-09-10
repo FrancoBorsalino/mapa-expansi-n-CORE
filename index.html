@@ -716,29 +716,14 @@ main {
     <div id="tab-content-busqueda" class="tab-content" style="display:none;">
 
     <div class="panel">
-      <div class="panel-title collapsible-header" data-target="body-locales">
-        <span>Locales comerciales</span>
-        <span class="collapse-arrow">▼</span>
-      </div>
-      <div class="panel-body" id="body-locales">
-        <div class="layer-item">
-          <input type="checkbox" id="chk-locales" checked>
-          <span class="swatch" style="background:#FFD23F;"></span>
-          <label for="chk-locales">Locales cargados (scraper)</label>
-        </div>
-        <button id="btn-cargar-locales" class="tool-btn-full" style="margin-top:.5rem;">Cargar GeoJSON</button>
-        <input type="file" id="input-locales" accept=".geojson,.json" style="display:none;">
-        <div id="locales-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
-        <button id="btn-quitar-locales" class="tool-btn-full" style="display:none; margin-top:.35rem;">Quitar capa cargada</button>
-      </div>
-    </div>
-
-    <div class="panel">
       <div class="panel-title collapsible-header" data-target="body-buscar-portales">
         <span>Buscar en portales</span>
         <span class="collapse-arrow">▼</span>
       </div>
       <div class="panel-body" id="body-buscar-portales">
+
+        <button id="btn-detectar-barrio-busqueda" class="tool-btn-full">Detectar barrio (click en el mapa)</button>
+        <div id="detectar-barrio-status-busqueda" style="font-size:10.5px; color:var(--muted); margin-top:.35rem; margin-bottom:.7rem; line-height:1.35;"></div>
 
         <div style="display:flex; gap:.5rem; margin-bottom:.6rem;">
           <input id="portal-precio-max" type="text" inputmode="numeric" placeholder="Precio máx (ARS)" style="width:60%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.4rem .5rem; border-radius:6px; font-size:12px;">
@@ -765,6 +750,24 @@ main {
         <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.6rem;">
           Siempre busca alquileres de locales comerciales. Abre la búsqueda ya armada en pestañas nuevas — no extrae ni descarga nada de esos sitios, solo arma el link. Zonaprop abre 1 sola pestaña con todos los barrios juntos. Argenprop y MercadoLibre abren 1 pestaña por grupo (CABA, y una por cada partido de Zona Norte que hayas tildado).
         </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title collapsible-header" data-target="body-locales">
+        <span>Locales comerciales</span>
+        <span class="collapse-arrow">▼</span>
+      </div>
+      <div class="panel-body" id="body-locales">
+        <div class="layer-item">
+          <input type="checkbox" id="chk-locales" checked>
+          <span class="swatch" style="background:#FFD23F;"></span>
+          <label for="chk-locales">Locales cargados (scraper)</label>
+        </div>
+        <button id="btn-cargar-locales" class="tool-btn-full" style="margin-top:.5rem;">Cargar GeoJSON</button>
+        <input type="file" id="input-locales" accept=".geojson,.json" style="display:none;">
+        <div id="locales-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
+        <button id="btn-quitar-locales" class="tool-btn-full" style="display:none; margin-top:.35rem;">Quitar capa cargada</button>
       </div>
     </div>
 
