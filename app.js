@@ -1177,3 +1177,148 @@ document.getElementById('btn-mini-mapa').addEventListener('click', async () => {
     pipWindow = null;
   });
 });
+
+// ---------- Tabs del sidebar (Análisis / Búsqueda) ----------
+document.querySelectorAll('.sidebar-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const destino = tab.dataset.tab;
+    document.getElementById('tab-content-analisis').style.display = destino === 'analisis' ? 'block' : 'none';
+    document.getElementById('tab-content-busqueda').style.display = destino === 'busqueda' ? 'block' : 'none';
+  });
+});
+
+// ---------- Sistema colapsable genérico para los paneles ----------
+document.querySelectorAll('.collapsible-header').forEach(header => {
+  header.addEventListener('click', () => {
+    const body = document.getElementById(header.dataset.target);
+    if (!body) return;
+    const abierto = body.style.display === 'block';
+    body.style.display = abierto ? 'none' : 'block';
+    const arrow = header.querySelector('.collapse-arrow');
+    if (arrow) arrow.style.transform = abierto ? 'rotate(0deg)' : 'rotate(180deg)';
+  });
+});
+
+// ---------- Buscar en portales (Zonaprop / Argenprop / MercadoLibre) ----------
+// Arma la URL de búsqueda de cada portal según barrio(s) elegidos y la abre
+// en una pestaña nueva -- no extrae ni descarga nada de esos sitios, solo
+// construye el link (igual que escribirlo a mano en la barra de direcciones).
+// Los patrones de URL se relevaron a mano mirando resultados reales de cada
+// portal; si en el futuro alguno cambia su estructura de URLs, avisen para
+// actualizar esto -- no hay forma de que se auto-corrija solo.
+function slugify(s) {
+  return s.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/ñ/g, 'n')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+const BARRIOS_CABA = [
+  'Agronomía','Almagro','Balvanera','Barracas','Belgrano','Boedo','Caballito','Chacarita',
+  'Coghlan','Colegiales','Constitución','Flores','Floresta','La Boca','La Paternal','Liniers',
+  'Mataderos','Monte Castro','Monserrat','Nueva Pompeya','Núñez','Palermo','Palermo Soho',
+  'Palermo Hollywood','Las Cañitas','Barrio Norte','Parque Avellaneda','Parque Chacabuco',
+  'Parque Chas','Parque Patricios','Puerto Madero','Recoleta','Retiro','Saavedra',
+  'San Cristóbal','San Nicolás','San Telmo','Vélez Sarsfield','Versalles','Villa Crespo',
+  'Villa del Parque','Villa Devoto','Villa Gral. Mitre','Villa Lugano','Villa Luro',
+  'Villa Ortúzar','Villa Pueyrredón','Villa Real','Villa Riachuelo','Villa Santa Rita',
+  'Villa Soldati','Villa Urquiza'
+];
+const BARRIOS_ZONA_NORTE = [
+  'Vicente López','Olivos','Martínez','Florida','Munro','Carapachay','Villa Adelina',
+  'San Isidro','Beccar','Boulogne','La Lucila','Acassuso','San Fernando','Tigre','Nordelta','Pilar'
+];
+
+const BARRIOS = [
+  ...BARRIOS_CABA.map(n => ({ nombre: n, slug: slugify(n), grupo: 'CABA' })),
+  ...BARRIOS_ZONA_NORTE.map(n => ({ nombre: n, slug: slugify(n), grupo: 'Zona Norte' }))
+];
+
+function renderBarriosChecklist() {
+  const cont = document.getElementById('barrios-checklist');
+  let html = '<div style="font-size:10px; color:var(--muted); font-weight:600; margin-bottom:.3rem;">CABA</div>';
+  BARRIOS.filter(b => b.grupo === 'CABA').forEach(b => {
+    html += `<label style="display:flex; align-items:center; gap:.4rem; padding:.15rem 0; font-size:11.5px; cursor:pointer;">
+      <input type="checkbox" class="chk-barrio-portal" value="${b.slug}" data-nombre="${b.nombre}" data-grupo="${b.grupo}"> ${b.nombre}
+    </label>`;
+  });
+  html += '<div style="font-size:10px; color:var(--muted); font-weight:600; margin:.5rem 0 .3rem;">Zona Norte</div>';
+  BARRIOS.filter(b => b.grupo === 'Zona Norte').forEach(b => {
+    html += `<label style="display:flex; align-items:center; gap:.4rem; padding:.15rem 0; font-size:11.5px; cursor:pointer;">
+      <input type="checkbox" class="chk-barrio-portal" value="${b.slug}" data-nombre="${b.nombre}" data-grupo="${b.grupo}"> ${b.nombre}
+    </label>`;
+  });
+  cont.innerHTML = html;
+}
+renderBarriosChecklist();
+
+document.getElementById('btn-barrios-todos-caba').addEventListener('click', () => {
+  document.querySelectorAll('.chk-barrio-portal[data-grupo="CABA"]').forEach(c => c.checked = true);
+});
+document.getElementById('btn-barrios-todos-zn').addEventListener('click', () => {
+  document.querySelectorAll('.chk-barrio-portal[data-grupo="Zona Norte"]').forEach(c => c.checked = true);
+});
+document.getElementById('btn-barrios-ninguno').addEventListener('click', () => {
+  document.querySelectorAll('.chk-barrio-portal').forEach(c => c.checked = false);
+});
+
+function barriosSeleccionados() {
+  return Array.from(document.querySelectorAll('.chk-barrio-portal:checked')).map(el => ({
+    slug: el.value, nombre: el.dataset.nombre, grupo: el.dataset.grupo
+  }));
+}
+function operacionElegida() {
+  return document.querySelector('input[name="portal-operacion"]:checked').value;
+}
+function confirmarSiSonMuchos(cantidad) {
+  if (cantidad > 4) {
+    return confirm(`Vas a abrir ${cantidad} pestañas (una por barrio). ¿Continuar?`);
+  }
+  return true;
+}
+
+document.getElementById('btn-buscar-zonaprop').addEventListener('click', () => {
+  const sel = barriosSeleccionados();
+  const status = document.getElementById('portal-status');
+  if (!sel.length) { status.textContent = 'Marcá al menos un barrio.'; return; }
+  if (!confirmarSiSonMuchos(sel.length)) return;
+  const operacion = operacionElegida();
+  const m2min = document.getElementById('portal-m2-min').value;
+  const m2max = document.getElementById('portal-m2-max').value;
+  sel.forEach(b => {
+    let url = `https://www.zonaprop.com.ar/locales-comerciales-${operacion}-${b.slug}`;
+    if (m2min && m2max) url += `-${m2min}-${m2max}-m2`;
+    url += '.html';
+    window.open(url, '_blank');
+  });
+  status.textContent = `Abriendo ${sel.length} búsqueda${sel.length > 1 ? 's' : ''} en Zonaprop.`;
+});
+
+document.getElementById('btn-buscar-argenprop').addEventListener('click', () => {
+  const sel = barriosSeleccionados();
+  const status = document.getElementById('portal-status');
+  if (!sel.length) { status.textContent = 'Marcá al menos un barrio.'; return; }
+  const operacion = operacionElegida();
+  const combinado = sel.map(b => b.slug).join('-o-');
+  const url = `https://www.argenprop.com/locales/${operacion}/${combinado}`;
+  window.open(url, '_blank');
+  status.textContent = `Abriendo búsqueda combinada (${sel.length} barrio${sel.length > 1 ? 's' : ''}) en Argenprop.`;
+});
+
+document.getElementById('btn-buscar-ml').addEventListener('click', () => {
+  const sel = barriosSeleccionados();
+  const status = document.getElementById('portal-status');
+  if (!sel.length) { status.textContent = 'Marcá al menos un barrio.'; return; }
+  if (!confirmarSiSonMuchos(sel.length)) return;
+  const operacion = operacionElegida();
+  sel.forEach(b => {
+    const url = b.grupo === 'CABA'
+      ? `https://inmuebles.mercadolibre.com.ar/locales/${operacion}/capital-federal/${b.slug}/`
+      : `https://inmuebles.mercadolibre.com.ar/locales/${operacion}/${b.slug}/`;
+    window.open(url, '_blank');
+  });
+  status.textContent = `Abriendo ${sel.length} búsqueda${sel.length > 1 ? 's' : ''} en MercadoLibre.`;
+});

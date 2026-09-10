@@ -148,6 +148,39 @@ main {
   color: var(--orange);
   margin-bottom: .75rem;
 }
+.panel-title.collapsible-header {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  margin-bottom: 0;
+}
+.collapse-arrow { transition: transform .2s; font-size: 10px; flex-shrink: 0; }
+.panel-body { display: none; margin-top: .6rem; }
+
+.sidebar-tabs {
+  display: flex;
+  gap: .4rem;
+  margin-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: .1rem;
+}
+.sidebar-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  padding: .5rem .3rem;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.sidebar-tab:hover { color: var(--light); }
+.sidebar-tab.active { color: var(--orange); border-bottom-color: var(--orange); }
 .layer-item {
   display: flex;
   align-items: center;
@@ -420,6 +453,13 @@ main {
 <main>
   <aside id="sidebar">
 
+    <div class="sidebar-tabs">
+      <button class="sidebar-tab active" data-tab="analisis">Análisis</button>
+      <button class="sidebar-tab" data-tab="busqueda">Búsqueda</button>
+    </div>
+
+    <div id="tab-content-analisis" class="tab-content">
+
     <div class="panel">
       <div class="panel-title">Buscar dirección</div>
       <div style="display:flex; gap:.4rem;">
@@ -482,162 +522,248 @@ main {
     </button>
 
     <div class="panel" id="panel-sedes-core">
-      <div class="panel-title">Sedes CORE</div>
-      <div class="layer-item">
-        <input type="checkbox" id="chk-core" checked>
-        <label for="chk-core">Sedes propias</label>
+      <div class="panel-title collapsible-header" data-target="body-sedes-core">
+        <span>Sedes CORE</span>
+        <span class="collapse-arrow">▼</span>
       </div>
-      <div class="legend-box show" style="margin-top:.5rem;">
-        <div class="legend-row"><span class="legend-swatch" style="background:#FF5C33;"></span>Indoor (CORE)</div>
-        <div class="legend-row"><span class="legend-swatch" style="background:#6B2A1A;"></span>Indoor + Pilates</div>
-        <div class="legend-row"><span class="legend-swatch" style="background:#C4A482;"></span>Indoor + Pilates + Yoga</div>
-      </div>
-      <div class="layer-item" style="margin-top:.3rem;">
-        <input type="checkbox" id="chk-radio10km">
-        <span class="swatch" style="background:transparent; border:2px solid #FF5C33; border-radius:50%;"></span>
-        <label for="chk-radio10km">Radio de 1km por sede</label>
-      </div>
-      <div class="layer-item" style="margin-top:.3rem;">
-        <input type="checkbox" id="chk-saturacion">
-        <span class="swatch" style="background:linear-gradient(90deg,#FCA35D,#B71C1C);"></span>
-        <label for="chk-saturacion">Saturación (solapamiento 1km)</label>
-      </div>
-      <div id="legend-saturacion" class="legend-box" style="margin-top:.5rem;">
-        <div class="legend-row"><span class="legend-swatch" style="background:#FCA35D;"></span>1 sede cerca</div>
-        <div class="legend-row"><span class="legend-swatch" style="background:#FF7A3D;"></span>2 sedes se superponen</div>
-        <div class="legend-row"><span class="legend-swatch" style="background:#FF3D3D;"></span>3 sedes se superponen</div>
-        <div class="legend-row"><span class="legend-swatch" style="background:#B71C1C;"></span>4+ sedes — zona saturada</div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-title">Zonas potenciales</div>
-      <div class="layer-item">
-        <input type="checkbox" id="chk-zonaspotenciales">
-        <span class="swatch" style="background:#00E0A4;"></span>
-        <label for="chk-zonaspotenciales">Oportunidades de apertura</label>
-      </div>
-      <div class="legend-box show" style="margin-top:.5rem;">
-        <div class="legend-row"><span class="legend-swatch" style="background:#00E0A4;"></span>Muy buena</div>
-        <div class="legend-row"><span class="legend-swatch" style="background:#3FA86B;"></span>Buena</div>
-        <div class="legend-row"><span class="legend-swatch" style="background:#B7D98A;"></span>Moderada</div>
-        <div class="legend-row" style="color:var(--muted); font-size:11px; line-height:1.4; margin-top:4px;">
-          Poder adquisitivo alto/medio-alto/medio, densidad en el tercio superior y riesgo bajo-medio, sin barrios populares. El poder adquisitivo medio actúa como techo: nunca supera "Moderada", aunque densidad y riesgo sean ideales.
+      <div class="panel-body" id="body-sedes-core">
+        <div class="layer-item">
+          <input type="checkbox" id="chk-core" checked>
+          <label for="chk-core">Sedes propias</label>
+        </div>
+        <div class="legend-box show" style="margin-top:.5rem;">
+          <div class="legend-row"><span class="legend-swatch" style="background:#FF5C33;"></span>Indoor (CORE)</div>
+          <div class="legend-row"><span class="legend-swatch" style="background:#6B2A1A;"></span>Indoor + Pilates</div>
+          <div class="legend-row"><span class="legend-swatch" style="background:#C4A482;"></span>Indoor + Pilates + Yoga</div>
+        </div>
+        <div class="layer-item" style="margin-top:.3rem;">
+          <input type="checkbox" id="chk-radio10km">
+          <span class="swatch" style="background:transparent; border:2px solid #FF5C33; border-radius:50%;"></span>
+          <label for="chk-radio10km">Radio de 1km por sede</label>
+        </div>
+        <div class="layer-item" style="margin-top:.3rem;">
+          <input type="checkbox" id="chk-saturacion">
+          <span class="swatch" style="background:linear-gradient(90deg,#FCA35D,#B71C1C);"></span>
+          <label for="chk-saturacion">Saturación (solapamiento 1km)</label>
+        </div>
+        <div id="legend-saturacion" class="legend-box" style="margin-top:.5rem;">
+          <div class="legend-row"><span class="legend-swatch" style="background:#FCA35D;"></span>1 sede cerca</div>
+          <div class="legend-row"><span class="legend-swatch" style="background:#FF7A3D;"></span>2 sedes se superponen</div>
+          <div class="legend-row"><span class="legend-swatch" style="background:#FF3D3D;"></span>3 sedes se superponen</div>
+          <div class="legend-row"><span class="legend-swatch" style="background:#B71C1C;"></span>4+ sedes — zona saturada</div>
         </div>
       </div>
     </div>
 
     <div class="panel">
-      <div class="panel-title">Competencia</div>
-      <div class="layer-item">
-        <input type="checkbox" id="chk-deportivos">
-        <span class="swatch" style="background:#4C9AFF;"></span>
-        <label for="chk-deportivos">Establecimientos deportivos</label>
+      <div class="panel-title collapsible-header" data-target="body-zonas">
+        <span>Zonas potenciales</span>
+        <span class="collapse-arrow">▼</span>
+      </div>
+      <div class="panel-body" id="body-zonas">
+        <div class="layer-item">
+          <input type="checkbox" id="chk-zonaspotenciales">
+          <span class="swatch" style="background:#00E0A4;"></span>
+          <label for="chk-zonaspotenciales">Oportunidades de apertura</label>
+        </div>
+        <div class="legend-box show" style="margin-top:.5rem;">
+          <div class="legend-row"><span class="legend-swatch" style="background:#00E0A4;"></span>Muy buena</div>
+          <div class="legend-row"><span class="legend-swatch" style="background:#3FA86B;"></span>Buena</div>
+          <div class="legend-row"><span class="legend-swatch" style="background:#B7D98A;"></span>Moderada</div>
+          <div class="legend-row" style="color:var(--muted); font-size:11px; line-height:1.4; margin-top:4px;">
+            Poder adquisitivo alto/medio-alto/medio, densidad en el tercio superior y riesgo bajo-medio, sin barrios populares. El poder adquisitivo medio actúa como techo: nunca supera "Moderada", aunque densidad y riesgo sean ideales.
+          </div>
+        </div>
       </div>
     </div>
 
     <div class="panel">
-      <div class="panel-title">Locales comerciales</div>
-      <div class="layer-item">
-        <input type="checkbox" id="chk-locales" checked>
-        <span class="swatch" style="background:#FFD23F;"></span>
-        <label for="chk-locales">Locales cargados (scraper)</label>
+      <div class="panel-title collapsible-header" data-target="body-competencia">
+        <span>Competencia</span>
+        <span class="collapse-arrow">▼</span>
       </div>
-      <button id="btn-cargar-locales" class="tool-btn-full" style="margin-top:.5rem;">📂 Cargar GeoJSON</button>
-      <input type="file" id="input-locales" accept=".geojson,.json" style="display:none;">
-      <div id="locales-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
-      <button id="btn-quitar-locales" class="tool-btn-full" style="display:none; margin-top:.35rem;">Quitar capa cargada</button>
-    </div>
-
-    <div class="panel">
-      <div class="panel-title">🔥 Mapa de calor de clientes</div>
-      <div class="layer-item">
-        <input type="checkbox" id="chk-heatmap" checked>
-        <span class="swatch" style="background:radial-gradient(circle, #FF3D3D, transparent);"></span>
-        <label for="chk-heatmap">Densidad de clientes</label>
-      </div>
-      <button id="btn-cargar-heatmap" class="tool-btn-full" style="margin-top:.5rem;">📂 Cargar CSV / GeoJSON</button>
-      <input type="file" id="input-heatmap" accept=".csv,.geojson,.json" style="display:none;">
-      <div id="heatmap-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
-      <button id="btn-quitar-heatmap" class="tool-btn-full" style="display:none; margin-top:.35rem;">Quitar capa cargada</button>
-
-      <div id="heatmap-controles" style="display:none; margin-top:.6rem;">
-        <div style="font-size:10.5px; color:var(--muted); margin-bottom:.2rem;">Radio: <span id="heatmap-radio-val">25</span>px</div>
-        <input type="range" id="heatmap-radio" min="8" max="60" value="25" style="width:100%; accent-color:var(--orange);">
-        <div style="font-size:10.5px; color:var(--muted); margin:.4rem 0 .2rem;">Difuminado: <span id="heatmap-blur-val">15</span>px</div>
-        <input type="range" id="heatmap-blur" min="2" max="40" value="15" style="width:100%; accent-color:var(--orange);">
-      </div>
-
-      <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.5rem;">
-        Esta capa <b>no se guarda</b> en el navegador ni en el repo — se carga solo en esta sesión y desaparece al recargar la página. Formato CSV: columnas <code>lat</code>/<code>lon</code> (o <code>latitud</code>/<code>longitud</code>), opcional <code>peso</code>.
+      <div class="panel-body" id="body-competencia">
+        <div class="layer-item">
+          <input type="checkbox" id="chk-deportivos">
+          <span class="swatch" style="background:#4C9AFF;"></span>
+          <label for="chk-deportivos">Establecimientos deportivos</label>
+        </div>
       </div>
     </div>
 
     <div class="panel">
-      <div class="panel-title">Contexto socioeconómico</div>
-      <div class="layer-item">
-        <input type="checkbox" id="chk-poder">
-        <span class="swatch" style="background:linear-gradient(90deg,#2E7DFF,#D9483A);"></span>
-        <label for="chk-poder">Poder adquisitivo (estrato)</label>
+      <div class="panel-title collapsible-header" data-target="body-heatmap">
+        <span>🔥 Mapa de calor</span>
+        <span class="collapse-arrow">▼</span>
       </div>
-      <div id="legend-poder" class="legend-box"></div>
+      <div class="panel-body" id="body-heatmap">
+        <div class="layer-item">
+          <input type="checkbox" id="chk-heatmap" checked>
+          <span class="swatch" style="background:radial-gradient(circle, #FF3D3D, transparent);"></span>
+          <label for="chk-heatmap">Densidad</label>
+        </div>
+        <button id="btn-cargar-heatmap" class="tool-btn-full" style="margin-top:.5rem;">📂 Cargar CSV / GeoJSON</button>
+        <input type="file" id="input-heatmap" accept=".csv,.geojson,.json" style="display:none;">
+        <div id="heatmap-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
+        <button id="btn-quitar-heatmap" class="tool-btn-full" style="display:none; margin-top:.35rem;">Quitar capa cargada</button>
 
-      <div class="layer-item">
-        <input type="checkbox" id="chk-densidad">
-        <span class="swatch" style="background:#E0A526;"></span>
-        <label for="chk-densidad">Densidad poblacional</label>
-      </div>
-      <div id="legend-densidad" class="legend-box"></div>
+        <div id="heatmap-controles" style="display:none; margin-top:.6rem;">
+          <div style="font-size:10.5px; color:var(--muted); margin-bottom:.2rem;">Radio: <span id="heatmap-radio-val">25</span>px</div>
+          <input type="range" id="heatmap-radio" min="8" max="60" value="25" style="width:100%; accent-color:var(--orange);">
+          <div style="font-size:10.5px; color:var(--muted); margin:.4rem 0 .2rem;">Difuminado: <span id="heatmap-blur-val">15</span>px</div>
+          <input type="range" id="heatmap-blur" min="2" max="40" value="15" style="width:100%; accent-color:var(--orange);">
+        </div>
 
-      <div class="layer-item">
-        <input type="checkbox" id="chk-riesgo">
-        <span class="swatch" style="background:#D9483A;"></span>
-        <label for="chk-riesgo">Riesgo de exclusión</label>
-      </div>
-      <div id="legend-riesgo" class="legend-box"></div>
-
-      <div class="layer-item">
-        <input type="checkbox" id="chk-barrios">
-        <span class="swatch" style="background:#7A4A22;"></span>
-        <label for="chk-barrios">Barrios populares</label>
+        <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.5rem;">
+          Esta capa <b>no se guarda</b> en el navegador ni en el repo — se carga solo en esta sesión y desaparece al recargar la página. Formato CSV: columnas <code>lat</code>/<code>lon</code> (o <code>latitud</code>/<code>longitud</code>), opcional <code>peso</code>.
+        </div>
       </div>
     </div>
 
     <div class="panel">
-      <div class="panel-title">Transporte</div>
-      <div class="layer-item">
-        <input type="checkbox" id="chk-transporte">
-        <span class="swatch" style="background:linear-gradient(90deg,#C9EABB,#0B3D0B);"></span>
-        <label for="chk-transporte">Uso de colectivo 2024 (zonal)</label>
+      <div class="panel-title collapsible-header" data-target="body-socioeconomico">
+        <span>Contexto socioeconómico</span>
+        <span class="collapse-arrow">▼</span>
       </div>
-      <div id="legend-transporte" class="legend-box"></div>
+      <div class="panel-body" id="body-socioeconomico">
+        <div class="layer-item">
+          <input type="checkbox" id="chk-poder">
+          <span class="swatch" style="background:linear-gradient(90deg,#2E7DFF,#D9483A);"></span>
+          <label for="chk-poder">Poder adquisitivo (estrato)</label>
+        </div>
+        <div id="legend-poder" class="legend-box"></div>
 
-      <div class="layer-item">
-        <input type="checkbox" id="chk-tren">
-        <span class="swatch" style="background:#4CE0AF;"></span>
-        <label for="chk-tren">Estaciones de tren</label>
-      </div>
+        <div class="layer-item">
+          <input type="checkbox" id="chk-densidad">
+          <span class="swatch" style="background:#E0A526;"></span>
+          <label for="chk-densidad">Densidad poblacional</label>
+        </div>
+        <div id="legend-densidad" class="legend-box"></div>
 
-      <div class="layer-item">
-        <input type="checkbox" id="chk-omnibus">
-        <span class="swatch" style="background:#B04CE0;"></span>
-        <label for="chk-omnibus">Terminales de ómnibus</label>
+        <div class="layer-item">
+          <input type="checkbox" id="chk-riesgo">
+          <span class="swatch" style="background:#D9483A;"></span>
+          <label for="chk-riesgo">Riesgo de exclusión</label>
+        </div>
+        <div id="legend-riesgo" class="legend-box"></div>
+
+        <div class="layer-item">
+          <input type="checkbox" id="chk-barrios">
+          <span class="swatch" style="background:#7A4A22;"></span>
+          <label for="chk-barrios">Barrios populares</label>
+        </div>
       </div>
     </div>
 
     <div class="panel">
-      <div class="panel-title">Educación</div>
-      <div class="layer-item">
-        <input type="checkbox" id="chk-universidades">
-        <span class="swatch" style="background:#F2C744;"></span>
-        <label for="chk-universidades">Universidades</label>
+      <div class="panel-title collapsible-header" data-target="body-transporte">
+        <span>Transporte</span>
+        <span class="collapse-arrow">▼</span>
       </div>
-      <div class="layer-item">
-        <input type="checkbox" id="chk-edusuperior">
-        <span class="swatch" style="background:#4C7AE0;"></span>
-        <label for="chk-edusuperior">Educación superior no universitaria</label>
+      <div class="panel-body" id="body-transporte">
+        <div class="layer-item">
+          <input type="checkbox" id="chk-transporte">
+          <span class="swatch" style="background:linear-gradient(90deg,#C9EABB,#0B3D0B);"></span>
+          <label for="chk-transporte">Uso de colectivo 2024 (zonal)</label>
+        </div>
+        <div id="legend-transporte" class="legend-box"></div>
+
+        <div class="layer-item">
+          <input type="checkbox" id="chk-tren">
+          <span class="swatch" style="background:#4CE0AF;"></span>
+          <label for="chk-tren">Estaciones de tren</label>
+        </div>
+
+        <div class="layer-item">
+          <input type="checkbox" id="chk-omnibus">
+          <span class="swatch" style="background:#B04CE0;"></span>
+          <label for="chk-omnibus">Terminales de ómnibus</label>
+        </div>
       </div>
     </div>
+
+    <div class="panel">
+      <div class="panel-title collapsible-header" data-target="body-educacion">
+        <span>Educación</span>
+        <span class="collapse-arrow">▼</span>
+      </div>
+      <div class="panel-body" id="body-educacion">
+        <div class="layer-item">
+          <input type="checkbox" id="chk-universidades">
+          <span class="swatch" style="background:#F2C744;"></span>
+          <label for="chk-universidades">Universidades</label>
+        </div>
+        <div class="layer-item">
+          <input type="checkbox" id="chk-edusuperior">
+          <span class="swatch" style="background:#4C7AE0;"></span>
+          <label for="chk-edusuperior">Educación superior no universitaria</label>
+        </div>
+      </div>
+    </div>
+
+    </div><!-- /tab-content-analisis -->
+
+    <div id="tab-content-busqueda" class="tab-content" style="display:none;">
+
+    <div class="panel">
+      <div class="panel-title collapsible-header" data-target="body-locales">
+        <span>Locales comerciales</span>
+        <span class="collapse-arrow">▼</span>
+      </div>
+      <div class="panel-body" id="body-locales">
+        <div class="layer-item">
+          <input type="checkbox" id="chk-locales" checked>
+          <span class="swatch" style="background:#FFD23F;"></span>
+          <label for="chk-locales">Locales cargados (scraper)</label>
+        </div>
+        <button id="btn-cargar-locales" class="tool-btn-full" style="margin-top:.5rem;">📂 Cargar GeoJSON</button>
+        <input type="file" id="input-locales" accept=".geojson,.json" style="display:none;">
+        <div id="locales-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
+        <button id="btn-quitar-locales" class="tool-btn-full" style="display:none; margin-top:.35rem;">Quitar capa cargada</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title collapsible-header" data-target="body-buscar-portales">
+        <span>Buscar en portales</span>
+        <span class="collapse-arrow">▼</span>
+      </div>
+      <div class="panel-body" id="body-buscar-portales">
+
+        <div style="display:flex; gap:1rem; font-size:12px; margin-bottom:.6rem;">
+          <label style="display:flex; align-items:center; gap:.3rem; cursor:pointer;"><input type="radio" name="portal-operacion" value="alquiler" checked> Alquiler</label>
+          <label style="display:flex; align-items:center; gap:.3rem; cursor:pointer;"><input type="radio" name="portal-operacion" value="venta"> Venta</label>
+        </div>
+
+        <div style="display:flex; gap:.5rem; margin-bottom:.6rem;">
+          <input id="portal-m2-min" type="number" placeholder="m² mín" style="width:50%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.4rem .5rem; border-radius:6px; font-size:12px;">
+          <input id="portal-m2-max" type="number" placeholder="m² máx" style="width:50%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.4rem .5rem; border-radius:6px; font-size:12px;">
+        </div>
+        <div style="font-size:10px; color:var(--muted); margin-bottom:.6rem;">El filtro de m² solo se aplica en Zonaprop (es el único de los 3 con URL confiable para eso). Precio y el resto de los filtros se ajustan manualmente en cada portal, un click, al abrir.</div>
+
+        <div style="display:flex; gap:.4rem; margin-bottom:.4rem;">
+          <button id="btn-barrios-todos-caba" class="tool-btn" style="flex:1; font-size:10px;">Marcar CABA</button>
+          <button id="btn-barrios-todos-zn" class="tool-btn" style="flex:1; font-size:10px;">Marcar Zona Norte</button>
+          <button id="btn-barrios-ninguno" class="tool-btn" style="flex:1; font-size:10px;">Ninguno</button>
+        </div>
+
+        <div id="barrios-checklist" style="max-height:220px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; padding:.5rem;"></div>
+
+        <div id="portal-status" style="font-size:10.5px; color:var(--muted); margin-top:.5rem; line-height:1.35;"></div>
+
+        <div class="tool-grid" style="margin-top:.6rem; grid-template-columns:1fr;">
+          <button id="btn-buscar-zonaprop" class="tool-btn-full">Buscar en Zonaprop</button>
+          <button id="btn-buscar-argenprop" class="tool-btn-full" style="margin-top:.4rem;">Buscar en Argenprop</button>
+          <button id="btn-buscar-ml" class="tool-btn-full" style="margin-top:.4rem;">Buscar en MercadoLibre</button>
+        </div>
+
+        <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.6rem;">
+          Abre la búsqueda ya armada en una pestaña nueva por cada portal — no extrae ni descarga nada de esos sitios, solo arma el link. Si tildás varios barrios, Argenprop los combina en una sola búsqueda; Zonaprop y MercadoLibre abren una pestaña por barrio (te va a pedir confirmar si son más de 4, para no inundarte de pestañas).
+        </div>
+      </div>
+    </div>
+
+    </div><!-- /tab-content-busqueda -->
 
   </aside>
 
