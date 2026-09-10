@@ -396,6 +396,25 @@ function construirCapasRegion(region) {
       }));
     }
 
+    // Contorno de barrios (CABA) + partidos (Zona Norte), solo líneas sin
+    // relleno -- para ver los límites sin que tape las otras capas de color.
+    const itemContorno = document.getElementById('item-contorno-barrios');
+    if (barriosCABA.length || partidosZN.length) {
+      if (itemContorno) itemContorno.style.display = 'flex';
+      const featuresContorno = [
+        ...barriosCABA.map(b => ({ type: 'Feature', properties: { nombre: b.nombre }, geometry: b.feature.geometry })),
+        ...partidosZN.map(p => ({ type: 'Feature', properties: { nombre: p.partido }, geometry: p.feature.geometry }))
+      ];
+      const contornoBarriosLayer = L.geoJSON({ type: 'FeatureCollection', features: featuresContorno }, {
+        style: { fill: false, color: '#E9E1FF', weight: 1.2, opacity: 0.65 },
+        onEachFeature: (f, layer) => layer.bindTooltip(f.properties.nombre, { sticky: true })
+      });
+      capasActivas['chk-contorno-barrios'] = contornoBarriosLayer;
+      toggleLayerDinamico('chk-contorno-barrios', contornoBarriosLayer);
+    } else {
+      if (itemContorno) itemContorno.style.display = 'none';
+    }
+
     // radio de 1km por sede
     const radios1kmLayer = L.layerGroup(coreSedes.map(s => L.circle([s.lat, s.lon], {
       radius: 1000, color: '#FF5C33', weight: 1.2, opacity: 0.6, fill: false
@@ -410,6 +429,8 @@ function construirCapasRegion(region) {
   } else {
     if (panelCore) panelCore.style.display = 'none';
     coreSedes = [];
+    const itemContorno = document.getElementById('item-contorno-barrios');
+    if (itemContorno) itemContorno.style.display = 'none';
   }
 }
 
