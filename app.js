@@ -1191,13 +1191,39 @@ const heatmapControles = document.getElementById('heatmap-controles');
 const btnQuitarHeatmap = document.getElementById('btn-quitar-heatmap');
 let heatPuntosActuales = [];
 
+// Parser de CSV que respeta campos entre comillas (pueden tener comas y
+// comillas escapadas "" adentro, como las direcciones completas que
+// genera el script de geocodificación del padrón).
+function parseLineaCSV(linea) {
+  const valores = [];
+  let actual = '';
+  let dentroDeComillas = false;
+  for (let i = 0; i < linea.length; i++) {
+    const c = linea[i];
+    if (dentroDeComillas) {
+      if (c === '"') {
+        if (linea[i + 1] === '"') { actual += '"'; i++; } // comilla escapada ""
+        else dentroDeComillas = false;
+      } else {
+        actual += c;
+      }
+    } else {
+      if (c === '"') dentroDeComillas = true;
+      else if (c === ',') { valores.push(actual); actual = ''; }
+      else actual += c;
+    }
+  }
+  valores.push(actual);
+  return valores.map(v => v.trim());
+}
+
 function parseCSVSimple(text) {
   const lineas = text.split(/\r?\n/).filter(l => l.trim().length > 0);
   if (!lineas.length) return [];
-  const headers = lineas[0].split(',').map(h => h.trim().toLowerCase().replace(/["']/g, ''));
+  const headers = parseLineaCSV(lineas[0]).map(h => h.toLowerCase());
   const filas = [];
   for (let i = 1; i < lineas.length; i++) {
-    const valores = lineas[i].split(',').map(v => v.trim().replace(/["']/g, ''));
+    const valores = parseLineaCSV(lineas[i]);
     const fila = {};
     headers.forEach((h, idx) => { fila[h] = valores[idx]; });
     filas.push(fila);
