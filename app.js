@@ -24,14 +24,14 @@ const REGIONS = {
       'amba/barrios_slim.geojson.js', 'amba/core_slim.geojson.js', 'amba/deportivos_slim.geojson.js',
       'amba/transporte_slim.geojson.js', 'amba/tren_slim.geojson.js', 'amba/omnibus_slim.geojson.js',
       'amba/universidades_slim.geojson.js', 'amba/edusuperior_slim.geojson.js', 'amba/zonas_potenciales_slim.geojson.js',
-      'amba/barrios_caba_slim.geojson.js'
+      'amba/barrios_caba_slim.geojson.js', 'amba/partidos_zona_norte_slim.geojson.js'
     ],
     vars: {
       densidad: 'DATA_DENSIDAD', poder: 'DATA_PODER', riesgo: 'DATA_RIESGO', barrios: 'DATA_BARRIOS',
       core: 'DATA_CORE', deportivos: 'DATA_DEPORTIVOS', transporte: 'DATA_TRANSPORTE',
       tren: 'DATA_TREN', omnibus: 'DATA_OMNIBUS', universidades: 'DATA_UNIVERSIDADES',
       edusuperior: 'DATA_EDUSUPERIOR', zonaspotenciales: 'DATA_ZONAS_POTENCIALES',
-      barriosLimites: 'DATA_BARRIOS_CABA_LIMITES'
+      barriosLimites: 'DATA_BARRIOS_CABA_LIMITES', partidosZN: 'DATA_PARTIDOS_ZONA_NORTE'
     }
   },
   rosario: {
@@ -148,6 +148,7 @@ let regionLayerGroup = L.layerGroup().addTo(map); // contiene TODAS las capas de
 let coreMarkers = []; // para reescalar íconos de sede en zoomend (solo AMBA)
 let coreSedes = [];   // usado por la herramienta de proximidad / radio de 1km
 let barriosCABA = []; // [{nombre, feature}], solo se llena en la región AMBA (límites oficiales, 48 barrios)
+let partidosZN = [];  // [{partido, partidoSlug, feature}], límites oficiales de partido (Zona Norte)
 
 const capasActivas = {}; // id checkbox -> L.Layer de la región actual
 
@@ -158,6 +159,7 @@ function limpiarRegionActual() {
   coreMarkers = [];
   coreSedes = [];
   barriosCABA = [];
+  partidosZN = [];
   Object.keys(capasActivas).forEach(k => delete capasActivas[k]);
 }
 
@@ -385,6 +387,12 @@ function construirCapasRegion(region) {
     if (v.barriosLimites && window[v.barriosLimites]) {
       barriosCABA = window[v.barriosLimites].features.map(f => ({
         nombre: f.properties.nombre, feature: f
+      }));
+    }
+
+    if (v.partidosZN && window[v.partidosZN]) {
+      partidosZN = window[v.partidosZN].features.map(f => ({
+        partido: f.properties.partido, partidoSlug: f.properties.partidoSlug, feature: f
       }));
     }
 
@@ -754,6 +762,37 @@ function detectarBarrioEnPunto(lat, lon) {
   return null;
 }
 
+// Zona Norte: solo hay límite oficial a nivel PARTIDO (no de barrio informal
+// como Olivos/Martínez/etc, esos no existen en ningún dataset oficial).
+function detectarPartidoEnPunto(lat, lon) {
+  if (!partidosZN.length) return null;
+  const punto = turf.point([lon, lat]);
+  for (const p of partidosZN) {
+    if (turf.booleanPointInPolygon(punto, p.feature)) return p;
+  }
+  return null;
+}
+
+// Todos los barrios/localidades de nuestro checklist que caen dentro de un
+// partido dado (ej: "vicente-lopez" -> Olivos, Martínez, Florida, ...).
+function localidadesDelPartido(partidoSlug) {
+  return BARRIOS.filter(b => b.partidoSlug === partidoSlug).map(b => b.nombre);
+}
+
+function detectarPartidosEnZona(layer) {
+  if (!partidosZN.length) return [];
+  let zonaGeoJSON;
+  try { zonaGeoJSON = layer.toGeoJSON(); } catch (err) { return []; }
+  const partidosTocados = [];
+  partidosZN.forEach(p => {
+    try {
+      if (turf.booleanIntersects(zonaGeoJSON, p.feature)) partidosTocados.push(p.partidoSlug);
+    } catch (err) { /* geometría rara, se ignora */ }
+  });
+  // devuelve todas las localidades del checklist que pertenecen a esos partidos
+  return partidosTocados.flatMap(localidadesDelPartido);
+}
+
 function detectarBarriosEnZona(layer) {
   if (!barriosCABA.length) return [];
   let zonaGeoJSON;
@@ -764,6 +803,8 @@ function detectarBarriosEnZona(layer) {
       if (turf.booleanIntersects(zonaGeoJSON, b.feature)) encontrados.push(b.nombre);
     } catch (err) { /* geometría rara, se ignora ese barrio */ }
   });
+  // sumamos también las localidades de Zona Norte que la zona llegue a tocar
+  encontrados.push(...detectarPartidosEnZona(layer));
   return encontrados;
 }
 
@@ -810,20 +851,34 @@ botonesDetectarBarrio.forEach(b => b.addEventListener('click', toggleModoDetecta
 // de ese lugar.
 map.on('click', (e) => {
   if (!modoDetectarBarrio) return;
-  const nombre = detectarBarrioEnPunto(e.latlng.lat, e.latlng.lng);
+  const nombreBarrio = detectarBarrioEnPunto(e.latlng.lat, e.latlng.lng);
 
-  if (!nombre) {
-    setStatusDetectarBarrio('No se detectó ningún barrio de CABA ahí (¿Zona Norte, o fuera de la Ciudad?).', true);
-  } else {
+  if (nombreBarrio) {
     setStatusDetectarBarrio(
-      `Barrio: <b>${nombre}</b> — <span class="remove-pin tildar-barrio-click" style="cursor:pointer; color:var(--orange);">Tildar en Búsqueda</span>`
+      `Barrio: <b>${nombreBarrio}</b> — <span class="remove-pin tildar-barrio-click" style="cursor:pointer; color:var(--orange);">Tildar en Búsqueda</span>`
     );
     document.querySelectorAll('.tildar-barrio-click').forEach(el => {
       el.addEventListener('click', () => {
-        const n = tildarBarriosEnBuscador([nombre]);
-        setStatusDetectarBarrio(`"${nombre}" tildado en el buscador (tab Búsqueda).`, true);
+        tildarBarriosEnBuscador([nombreBarrio]);
+        setStatusDetectarBarrio(`"${nombreBarrio}" tildado en el buscador (tab Búsqueda).`, true);
       });
     });
+  } else {
+    const partido = detectarPartidoEnPunto(e.latlng.lat, e.latlng.lng);
+    if (partido) {
+      const localidades = localidadesDelPartido(partido.partidoSlug);
+      setStatusDetectarBarrio(
+        `Partido: <b>${partido.partido}</b> (Zona Norte, sin límite oficial de barrio ahí) — <span class="remove-pin tildar-barrio-click" style="cursor:pointer; color:var(--orange);">Sumar localidades del partido a la búsqueda</span>`
+      );
+      document.querySelectorAll('.tildar-barrio-click').forEach(el => {
+        el.addEventListener('click', () => {
+          const n = tildarBarriosEnBuscador(localidades);
+          setStatusDetectarBarrio(`${n} localidad${n !== 1 ? 'es' : ''} de ${partido.partido} tildada${n !== 1 ? 's' : ''} en el buscador.`, true);
+        });
+      });
+    } else {
+      setStatusDetectarBarrio('No se detectó nada ahí (¿fuera del AMBA?).', true);
+    }
   }
 
   modoDetectarBarrio = false;
