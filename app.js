@@ -543,7 +543,7 @@ function actualizarListaPines() {
 function agregarPin(lat, lon, label) {
   const id = 'pin' + (++pinCounter);
   const marker = L.marker([lat, lon], { icon: pinIcon }).addTo(pinsLayer);
-  marker.bindPopup(`<div class="popup-title">📍 ${label}</div><div class="popup-row" style="color:var(--muted); font-size:11px;">${lat.toFixed(5)}, ${lon.toFixed(5)}</div>`);
+  marker.bindPopup(`<div class="popup-title">${label}</div><div class="popup-row" style="color:var(--muted); font-size:11px;">${lat.toFixed(5)}, ${lon.toFixed(5)}</div>`);
   pinsById[id] = { marker, label };
 
   const { sede, distancia } = sedeMasCercana(lat, lon);
@@ -608,7 +608,7 @@ map.on('contextmenu', async (e) => {
     const label = data.display_name ? data.display_name.split(',').slice(0, 2).join(',') : `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
     if (idNuevo && pinsById[idNuevo]) {
       pinsById[idNuevo].label = label;
-      pinsById[idNuevo].marker.setPopupContent(`<div class="popup-title">📍 ${label}</div><div class="popup-row" style="color:var(--muted); font-size:11px;">${lat.toFixed(5)}, ${lng.toFixed(5)}</div>`);
+      pinsById[idNuevo].marker.setPopupContent(`<div class="popup-title">${label}</div><div class="popup-row" style="color:var(--muted); font-size:11px;">${lat.toFixed(5)}, ${lng.toFixed(5)}</div>`);
       actualizarListaPines();
     }
   } catch (err) {
@@ -653,7 +653,7 @@ map.on('click', (e) => {
   const distancia = puntoA.distanceTo(puntoB);
   const label = distancia >= 1000 ? `${(distancia/1000).toFixed(2)} km` : `${Math.round(distancia)} m`;
   linea.bindTooltip(label, { permanent: true, direction: 'center', className: 'dist-label' });
-  linea.bindPopup(`<div class="popup-title">📏 ${label}</div><div class="popup-row" style="margin-top:4px;"><span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-${id}">✕ Borrar esta medición</span></div>`);
+  linea.bindPopup(`<div class="popup-title">${label}</div><div class="popup-row" style="margin-top:4px;"><span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-${id}">✕ Borrar esta medición</span></div>`);
   linea.on('popupopen', () => {
     const btn = document.getElementById(`borrar-${id}`);
     if (btn) btn.addEventListener('click', () => {
@@ -700,7 +700,7 @@ map.on('click', (e) => {
   const circulo = L.circle(e.latlng, { radius: metros, color: '#4CE0AF', weight: 1.5, fillColor: '#4CE0AF', fillOpacity: 0.12 }).addTo(radioPersonalizadoLayer);
   const label = metros >= 1000 ? `${(metros/1000).toFixed(2)}km` : `${Math.round(metros)}m`;
   circulo.bindTooltip(`Radio ${label}`, { sticky: true });
-  circulo.bindPopup(`<div class="popup-title">⭕ Radio ${label}</div><div class="popup-row" style="margin-top:4px;"><span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-${id}">✕ Borrar este radio</span></div>`);
+  circulo.bindPopup(`<div class="popup-title">Radio ${label}</div><div class="popup-row" style="margin-top:4px;"><span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-${id}">✕ Borrar este radio</span></div>`);
   circulo.on('popupopen', () => {
     const btn = document.getElementById(`borrar-${id}`);
     if (btn) btn.addEventListener('click', () => {
@@ -778,9 +778,9 @@ function bindZonaPopup(layer, label) {
   }
 
   layer.bindPopup(() => `
-    <div class="popup-title">✏️ ${labelHtml}</div>
+    <div class="popup-title">${labelHtml}</div>
     <div class="popup-row" style="margin-top:4px; display:flex; gap:10px;">
-      <span class="remove-pin" style="cursor:pointer; color:var(--orange);" id="renombrar-zona-${L.Util.stamp(layer)}">✎ Renombrar</span>
+      <span class="remove-pin" style="cursor:pointer; color:var(--orange);" id="renombrar-zona-${L.Util.stamp(layer)}">Renombrar</span>
       <span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-zona-${L.Util.stamp(layer)}">✕ Borrar esta zona</span>
     </div>
   `);
@@ -843,11 +843,11 @@ const btnEditar = document.getElementById('btn-editar-dibujos');
 btnEditar.addEventListener('click', () => {
   if (btnEditar.classList.contains('active')) {
     editHandler.save(); editHandler.disable();
-    btnEditar.classList.remove('active'); btnEditar.innerHTML = '🖊️<br>Editar formas';
+    btnEditar.classList.remove('active'); btnEditar.innerHTML = 'Editar formas';
     guardarDibujos(); dibujoStatus.textContent = 'Cambios guardados.';
   } else {
     editHandler.enable();
-    btnEditar.classList.add('active'); btnEditar.innerHTML = '✅<br>Listo (guardar)';
+    btnEditar.classList.add('active'); btnEditar.innerHTML = 'Listo (guardar)';
     dibujoStatus.textContent = 'Arrastrá los vértices para modificar la forma.';
   }
 });
@@ -919,7 +919,7 @@ function renderLocales(geojsonData) {
       const p = f.properties || {};
       const nombre = p.direccion || p.nombre || p.address || 'Local comercial';
       layer.bindTooltip(`<div style="font-weight:600; color:var(--orange);">${nombre}</div>`, { sticky: true });
-      layer.bindPopup(`<div class="popup-title">🏢 ${nombre}</div>${propsToHtml(p)}`);
+      layer.bindPopup(`<div class="popup-title">${nombre}</div>${propsToHtml(p)}`);
     }
   }).addTo(localesLayer);
   return n;
@@ -1203,11 +1203,10 @@ document.querySelectorAll('.collapsible-header').forEach(header => {
 
 // ---------- Buscar en portales (Zonaprop / Argenprop / MercadoLibre) ----------
 // Arma la URL de búsqueda de cada portal según barrio(s) y filtros elegidos,
-// y la abre en pestaña(s) nueva(s) -- no extrae ni descarga nada de esos
-// sitios, solo construye el link (como escribirlo a mano en la barra de
-// direcciones). Patrones de URL confirmados contra el scraper propio de
-// CORE (_build_zp_url_base / _build_ap_urls / _build_ml_urls). Siempre
-// busca ALQUILER, nunca venta.
+// siempre en su versión de MAPA, y la abre en pestaña(s) nueva(s) -- no
+// extrae ni descarga nada de esos sitios, solo construye el link. Patrones
+// confirmados contra ejemplos reales armados con el scraper propio de CORE.
+// Siempre busca ALQUILER, nunca venta.
 function slugify(s) {
   return s.toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -1228,8 +1227,6 @@ const BARRIOS_CABA = [
   'Villa Soldati','Villa Urquiza'
 ];
 
-// Zona Norte agrupada por PARTIDO real (necesario para Argenprop/ML, que
-// piden un request separado por cada partido del GBA).
 const ZONA_NORTE_POR_PARTIDO = {
   'Vicente López': ['Vicente López', 'Olivos', 'Martínez', 'Florida', 'Munro', 'Carapachay', 'Villa Adelina'],
   'San Isidro': ['San Isidro', 'Beccar', 'Boulogne', 'La Lucila', 'Acassuso'],
@@ -1284,7 +1281,6 @@ function barriosSeleccionados() {
 }
 
 function agruparPorPartido(seleccionados) {
-  // { 'CABA': [barrio,...], 'vicente-lopez': [...], 'san-isidro': [...], ... }
   const grupos = {};
   seleccionados.forEach(b => {
     const clave = b.grupo === 'CABA' ? 'CABA' : b.partidoSlug;
@@ -1292,6 +1288,16 @@ function agruparPorPartido(seleccionados) {
     grupos[clave].push(b);
   });
   return grupos;
+}
+
+// Abre una URL y devuelve si el navegador la bloqueó (bloqueador de
+// pop-ups). window.open puede devolver null, o una ventana ya cerrada
+// por el navegador -- en cualquiera de esos casos avisamos, en vez de
+// quedarnos callados como si hubiera funcionado.
+function abrirPestana(url) {
+  const w = window.open(url, '_blank');
+  if (!w || w.closed || typeof w.closed === 'undefined') return false;
+  return true;
 }
 
 // ---- Zonaprop: una sola URL con TODOS los barrios concatenados ----
@@ -1307,9 +1313,11 @@ document.getElementById('btn-buscar-zonaprop').addEventListener('click', () => {
   if (precioMax && m2min) {
     url += `-mas-${m2min}-m2-cubiertos-menos-${precioMax}-pesos`;
   }
-  url += '.html';
-  window.open(url, '_blank');
-  status.textContent = `Abriendo búsqueda en Zonaprop (${sel.length} barrio${sel.length > 1 ? 's' : ''} juntos).`;
+  url += '-map.html';
+  const ok = abrirPestana(url);
+  status.textContent = ok
+    ? `Abriendo búsqueda en Zonaprop (${sel.length} barrio${sel.length > 1 ? 's' : ''} juntos).`
+    : 'El navegador bloqueó la pestaña. Permitile pop-ups a este sitio y volvé a intentar.';
 });
 
 // ---- Argenprop: un request por grupo (CABA + cada partido), barrios unidos con "-o-" ----
@@ -1325,14 +1333,20 @@ document.getElementById('btn-buscar-argenprop').addEventListener('click', () => 
 
   if (claves.length > 4 && !confirm(`Vas a abrir ${claves.length} pestañas (una por grupo/partido). ¿Continuar?`)) return;
 
+  let algunBloqueado = false;
   claves.forEach(clave => {
     const barriosGrupo = grupos[clave].map(b => b.slug).join('-o-');
     let url = `https://www.argenprop.com/locales/alquiler/${barriosGrupo}`;
+    const queryParts = [];
     if (precioMax) url += `/pesos-hasta-${precioMax}`;
-    if (m2min) url += `?desde-${m2min}-m2`;
-    window.open(url, '_blank');
+    if (m2min) queryParts.push(`desde-${m2min}-m2`);
+    queryParts.push('vista-mapa');
+    url += '?' + queryParts.join('&');
+    if (!abrirPestana(url)) algunBloqueado = true;
   });
-  status.textContent = `Abriendo ${claves.length} búsqueda${claves.length > 1 ? 's' : ''} en Argenprop (CABA + partidos por separado).`;
+  status.textContent = algunBloqueado
+    ? 'El navegador bloqueó alguna pestaña. Permitile pop-ups a este sitio y volvé a intentar.'
+    : `Abriendo ${claves.length} búsqueda${claves.length > 1 ? 's' : ''} en Argenprop (CABA + partidos por separado).`;
 });
 
 // ---- MercadoLibre: un request por grupo, distinta ruta CABA vs GBA ----
@@ -1348,17 +1362,20 @@ document.getElementById('btn-buscar-ml').addEventListener('click', () => {
 
   if (claves.length > 4 && !confirm(`Vas a abrir ${claves.length} pestañas (una por grupo/partido). ¿Continuar?`)) return;
 
+  let algunBloqueado = false;
   claves.forEach(clave => {
     const barriosGrupo = grupos[clave].map(b => b.slug).join('-o-');
-    let url;
-    if (clave === 'CABA') {
-      url = `https://inmuebles.mercadolibre.com.ar/locales/alquiler/capital-federal/${barriosGrupo}/`;
-      if (precioMax && m2min) url += `_PriceRange_0ARS-${precioMax}ARS_TOTAL*AREA_${m2min}m%C2%B2-*`;
-    } else {
-      url = `https://inmuebles.mercadolibre.com.ar/locales/alquiler/bsas-gba-norte/${clave}/${barriosGrupo}/`;
-      if (precioMax && m2min) url += `_PriceRange_0ARS-${precioMax}ARS_NoIndex_True_TOTAL*AREA_${m2min}m%C2%B2-*`;
+    const base = clave === 'CABA'
+      ? `https://inmuebles.mercadolibre.com.ar/locales/alquiler/capital-federal/${barriosGrupo}/`
+      : `https://inmuebles.mercadolibre.com.ar/locales/alquiler/bsas-gba-norte/${clave}/${barriosGrupo}/`;
+    let sufijo = '_DisplayType_M';
+    if (precioMax && m2min) {
+      sufijo += `_PriceRange_0USD-${precioMax}USD_NoIndex_True_TOTAL*AREA_${m2min}m%C2%B2-*`;
     }
-    window.open(url, '_blank');
+    const url = base + sufijo;
+    if (!abrirPestana(url)) algunBloqueado = true;
   });
-  status.textContent = `Abriendo ${claves.length} búsqueda${claves.length > 1 ? 's' : ''} en MercadoLibre (CABA + partidos por separado).`;
+  status.textContent = algunBloqueado
+    ? 'El navegador bloqueó alguna pestaña. Permitile pop-ups a este sitio y volvé a intentar.'
+    : `Abriendo ${claves.length} búsqueda${claves.length > 1 ? 's' : ''} en MercadoLibre (CABA + partidos por separado).`;
 });
