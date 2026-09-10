@@ -981,7 +981,7 @@ function bindZonaPopup(layer, label) {
     return `
       <div class="popup-title">${labelHtml}</div>
       ${filaBarrios}
-      <div class="popup-row" style="margin-top:8px; display:flex; gap:10px;">
+      <div class="popup-row" style="margin-top:8px; display:flex; justify-content:space-between;">
         <span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-zona-${L.Util.stamp(layer)}">✕ Borrar esta zona</span>
         <span class="remove-pin" style="cursor:pointer; color:var(--orange);" id="renombrar-zona-${L.Util.stamp(layer)}">Renombrar</span>
       </div>
