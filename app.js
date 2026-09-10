@@ -780,11 +780,9 @@ function tildarBarriosEnBuscador(nombresBarrios) {
 
 let modoDetectarBarrio = false;
 const botonesDetectarBarrio = [
-  document.getElementById('btn-detectar-barrio'),
   document.getElementById('btn-detectar-barrio-busqueda')
 ];
 const statusDetectarBarrio = [
-  document.getElementById('detectar-barrio-status'),
   document.getElementById('detectar-barrio-status-busqueda')
 ];
 
@@ -799,50 +797,27 @@ function toggleModoDetectarBarrio() {
   }
   modoDetectarBarrio = !modoDetectarBarrio;
   botonesDetectarBarrio.forEach(b => b.classList.toggle('active', modoDetectarBarrio));
-  setStatusDetectarBarrio(modoDetectarBarrio ? 'Hacé click en cualquier punto del mapa (si es dentro de una zona dibujada, detecta todos los barrios de esa zona).' : '', true);
+  setStatusDetectarBarrio(modoDetectarBarrio ? 'Hacé click en cualquier punto del mapa. Para una zona dibujada, abrí su popup y usá "Sumar a la búsqueda" ahí.' : '', true);
 }
 botonesDetectarBarrio.forEach(b => b.addEventListener('click', toggleModoDetectarBarrio));
 
 // Busca si el click cayó dentro de alguna zona ya dibujada. Si es así,
 // devuelve TODOS los barrios de esa zona; si no, solo el barrio puntual
 // de ese lugar.
-function detectarEnClick(latlng) {
-  const punto = turf.point([latlng.lng, latlng.lat]);
-  let zonaTocada = null;
-  drawnItems.eachLayer(layer => {
-    if (zonaTocada) return;
-    try {
-      if (turf.booleanPointInPolygon(punto, layer.toGeoJSON())) zonaTocada = layer;
-    } catch (err) { /* geometría rara, se ignora */ }
-  });
-  if (zonaTocada) {
-    if (zonaTocada._barriosDetectados === undefined) {
-      zonaTocada._barriosDetectados = detectarBarriosEnZona(zonaTocada);
-    }
-    return { tipo: 'zona', nombres: zonaTocada._barriosDetectados, etiquetaZona: zonaTocada._zonaLabel };
-  }
-  const nombre = detectarBarrioEnPunto(latlng.lat, latlng.lng);
-  return { tipo: 'punto', nombres: nombre ? [nombre] : [] };
-}
-
 map.on('click', (e) => {
   if (!modoDetectarBarrio) return;
-  const resultado = detectarEnClick(e.latlng);
+  const nombre = detectarBarrioEnPunto(e.latlng.lat, e.latlng.lng);
 
-  if (!resultado.nombres.length) {
-    setStatusDetectarBarrio('No se detectó ningún barrio de CABA ahí (¿Zona Norte, zona sin barrios asignados, o fuera de la Ciudad?).', true);
+  if (!nombre) {
+    setStatusDetectarBarrio('No se detectó ningún barrio de CABA ahí (¿Zona Norte, o fuera de la Ciudad?).', true);
   } else {
-    const listaHtml = resultado.nombres.join(', ');
-    const introduccion = resultado.tipo === 'zona'
-      ? `Barrios en zona "${(resultado.etiquetaZona || 'sin nombre').replace(/\n/g, ' / ')}": `
-      : 'Barrio: ';
     setStatusDetectarBarrio(
-      `${introduccion}<b>${listaHtml}</b> — <span class="remove-pin tildar-barrio-click" style="cursor:pointer; color:var(--orange);">Tildar en Búsqueda</span>`
+      `Barrio: <b>${nombre}</b> — <span class="remove-pin tildar-barrio-click" style="cursor:pointer; color:var(--orange);">Tildar en Búsqueda</span>`
     );
     document.querySelectorAll('.tildar-barrio-click').forEach(el => {
       el.addEventListener('click', () => {
-        const n = tildarBarriosEnBuscador(resultado.nombres);
-        setStatusDetectarBarrio(`${n} barrio${n !== 1 ? 's' : ''} tildado${n !== 1 ? 's' : ''} en el buscador (tab Búsqueda).`, true);
+        const n = tildarBarriosEnBuscador([nombre]);
+        setStatusDetectarBarrio(`"${nombre}" tildado en el buscador (tab Búsqueda).`, true);
       });
     });
   }
@@ -896,36 +871,40 @@ function pedirNombreZona(titulo, valorInicial) {
 
 function bindZonaPopup(layer, label) {
   layer._zonaLabel = label || 'Zona sin nombre';
-  const labelHtml = layer._zonaLabel.replace(/\n/g, '<br>');
-  // si es una zona vieja (guardada antes de esta función) y ya tenemos los
-  // límites de barrios cargados, los calculamos recién ahora
-  if (layer._barriosDetectados === undefined && barriosCABA.length) {
-    layer._barriosDetectados = detectarBarriosEnZona(layer);
-  }
-  const barrios = layer._barriosDetectados || [];
   const idBotonTildar = `tildar-barrios-${L.Util.stamp(layer)}`;
 
   // Etiqueta visible siempre sobre la zona (no hace falta hacer click)
+  const labelHtmlInicial = layer._zonaLabel.replace(/\n/g, '<br>');
   if (layer._zonaTooltip) {
-    layer.setTooltipContent(labelHtml);
+    layer.setTooltipContent(labelHtmlInicial);
   } else {
-    layer.bindTooltip(labelHtml, { permanent: true, direction: 'center', className: 'zona-label' });
+    layer.bindTooltip(labelHtmlInicial, { permanent: true, direction: 'center', className: 'zona-label' });
     layer._zonaTooltip = true;
   }
 
-  const filaBarrios = barrios.length
-    ? `<div class="popup-row" style="margin-top:6px;">Barrios: <b>${barrios.join(', ')}</b></div>
-       <div class="popup-row" style="margin-top:4px;"><span class="remove-pin" style="cursor:pointer; color:var(--orange);" id="${idBotonTildar}">Tildar estos barrios en Búsqueda</span></div>`
-    : '';
+  // El contenido del popup se recalcula CADA VEZ que se abre (no solo una
+  // vez al crear/renombrar la zona), así los barrios siempre están al día
+  // aunque los límites de CABA hayan terminado de cargar recién después.
+  layer.bindPopup(() => {
+    const labelHtml = layer._zonaLabel.replace(/\n/g, '<br>');
+    if (barriosCABA.length) {
+      layer._barriosDetectados = detectarBarriosEnZona(layer);
+    }
+    const barrios = layer._barriosDetectados || [];
+    const filaBarrios = barrios.length
+      ? `<div class="popup-row" style="margin-top:6px;">Barrios: <b>${barrios.join(', ')}</b></div>
+         <div class="popup-row" style="margin-top:4px;"><span class="remove-pin" style="cursor:pointer; color:var(--orange);" id="${idBotonTildar}">Sumar a la búsqueda</span></div>`
+      : `<div class="popup-row" style="margin-top:6px; color:var(--muted); font-size:11px;">Sin barrios de CABA detectados acá (¿Zona Norte, o fuera de la Ciudad?).</div>`;
 
-  layer.bindPopup(() => `
-    <div class="popup-title">${labelHtml}</div>
-    ${filaBarrios}
-    <div class="popup-row" style="margin-top:4px; display:flex; gap:10px;">
-      <span class="remove-pin" style="cursor:pointer; color:var(--orange);" id="renombrar-zona-${L.Util.stamp(layer)}">Renombrar</span>
-      <span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-zona-${L.Util.stamp(layer)}">✕ Borrar esta zona</span>
-    </div>
-  `);
+    return `
+      <div class="popup-title">${labelHtml}</div>
+      ${filaBarrios}
+      <div class="popup-row" style="margin-top:4px; display:flex; gap:10px;">
+        <span class="remove-pin" style="cursor:pointer; color:var(--orange);" id="renombrar-zona-${L.Util.stamp(layer)}">Renombrar</span>
+        <span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-zona-${L.Util.stamp(layer)}">✕ Borrar esta zona</span>
+      </div>
+    `;
+  });
   layer.on('popupopen', () => {
     const btnBorrar = document.getElementById(`borrar-zona-${L.Util.stamp(layer)}`);
     if (btnBorrar) btnBorrar.addEventListener('click', () => { drawnItems.removeLayer(layer); guardarDibujos(); map.closePopup(); });
@@ -945,8 +924,8 @@ function bindZonaPopup(layer, label) {
 
     const btnTildar = document.getElementById(idBotonTildar);
     if (btnTildar) btnTildar.addEventListener('click', () => {
-      const n = tildarBarriosEnBuscador(barrios);
-      dibujoStatus.textContent = `${n} barrio${n !== 1 ? 's' : ''} tildado${n !== 1 ? 's' : ''} en el buscador (tab Búsqueda).`;
+      const n = tildarBarriosEnBuscador(layer._barriosDetectados || []);
+      dibujoStatus.textContent = `${n} barrio${n !== 1 ? 's' : ''} sumado${n !== 1 ? 's' : ''} a la búsqueda (tab Búsqueda).`;
       map.closePopup();
     });
   });
