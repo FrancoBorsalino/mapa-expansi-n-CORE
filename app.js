@@ -770,12 +770,16 @@ function detectarBarriosEnZona(layer) {
 // Tilda en el checklist del buscador de portales (tab Búsqueda) los
 // barrios detectados, para no tener que hacerlo a mano uno por uno.
 function tildarBarriosEnBuscador(nombresBarrios) {
-  const slugsATildar = new Set(nombresBarrios.map(slugParaPortal));
-  let tildados = 0;
-  document.querySelectorAll('.chk-barrio-portal').forEach(chk => {
-    if (slugsATildar.has(chk.value)) { chk.checked = true; tildados++; }
+  const slugsATildar = nombresBarrios.map(slugParaPortal);
+  let agregados = 0;
+  slugsATildar.forEach(slug => {
+    if (BARRIOS.some(b => b.slug === slug) && !barriosSeleccionadosSet.has(slug)) {
+      barriosSeleccionadosSet.add(slug);
+      agregados++;
+    }
   });
-  return tildados;
+  renderChips();
+  return agregados;
 }
 
 let modoDetectarBarrio = false;
@@ -1386,42 +1390,97 @@ const BARRIOS = [
   )
 ];
 
-function renderBarriosChecklist() {
-  const cont = document.getElementById('barrios-checklist');
-  let html = '<div style="font-size:10px; color:var(--muted); font-weight:600; margin-bottom:.3rem;">CABA</div>';
-  BARRIOS.filter(b => b.grupo === 'CABA').forEach(b => {
-    html += `<label style="display:flex; align-items:center; gap:.4rem; padding:.15rem 0; font-size:11.5px; cursor:pointer;">
-      <input type="checkbox" class="chk-barrio-portal" value="${b.slug}" data-nombre="${b.nombre}" data-grupo="${b.grupo}"> ${b.nombre}
-    </label>`;
-  });
-  let partidoActual = null;
-  BARRIOS.filter(b => b.grupo === 'Zona Norte').forEach(b => {
-    if (b.partido !== partidoActual) {
-      html += `<div style="font-size:10px; color:var(--muted); font-weight:600; margin:.5rem 0 .3rem;">Zona Norte — ${b.partido}</div>`;
-      partidoActual = b.partido;
-    }
-    html += `<label style="display:flex; align-items:center; gap:.4rem; padding:.15rem 0; font-size:11.5px; cursor:pointer;">
-      <input type="checkbox" class="chk-barrio-portal" value="${b.slug}" data-nombre="${b.nombre}" data-grupo="${b.grupo}" data-partido="${b.partidoSlug}"> ${b.nombre}
-    </label>`;
-  });
-  cont.innerHTML = html;
+// ---------- Selector de barrios: buscador con autocompletado + chips ----------
+// Reemplaza al checklist largo de antes -- guardamos los seleccionados en
+// un Set (por slug) como fuente de verdad, y todo lo demás (chips visibles,
+// sugerencias del buscador) se renderiza a partir de ahí.
+const barriosSeleccionadosSet = new Set();
+
+const inputBarrioBuscar = document.getElementById('barrio-buscar');
+const contSugerencias = document.getElementById('barrio-sugerencias');
+const contChips = document.getElementById('barrios-chips');
+
+function agregarBarrio(slug) {
+  barriosSeleccionadosSet.add(slug);
+  renderChips();
 }
-renderBarriosChecklist();
+function quitarBarrio(slug) {
+  barriosSeleccionadosSet.delete(slug);
+  renderChips();
+}
+
+function renderChips() {
+  if (!barriosSeleccionadosSet.size) {
+    contChips.innerHTML = '<div style="font-size:11px; color:var(--muted);">Ningún barrio seleccionado todavía.</div>';
+    return;
+  }
+  contChips.innerHTML = Array.from(barriosSeleccionadosSet).map(slug => {
+    const b = BARRIOS.find(x => x.slug === slug);
+    const nombre = b ? b.nombre : slug;
+    return `<span class="barrio-chip" data-slug="${slug}">${nombre}<span class="quitar-chip" data-slug="${slug}">✕</span></span>`;
+  }).join('');
+  contChips.querySelectorAll('.quitar-chip').forEach(el => {
+    el.addEventListener('click', () => quitarBarrio(el.dataset.slug));
+  });
+}
+renderChips();
+
+function renderSugerencias(query) {
+  const q = slugify(query);
+  if (!q) { contSugerencias.style.display = 'none'; contSugerencias.innerHTML = ''; return; }
+  const coincidencias = BARRIOS
+    .filter(b => !barriosSeleccionadosSet.has(b.slug) && slugify(b.nombre).includes(q))
+    .slice(0, 10);
+  if (!coincidencias.length) { contSugerencias.style.display = 'none'; contSugerencias.innerHTML = ''; return; }
+  contSugerencias.innerHTML = coincidencias.map(b => `
+    <div class="barrio-sugerencia-item" data-slug="${b.slug}">
+      <span>${b.nombre}</span>
+      <span class="grupo-tag">${b.grupo === 'CABA' ? 'CABA' : b.partido}</span>
+    </div>
+  `).join('');
+  contSugerencias.style.display = 'block';
+  contSugerencias.querySelectorAll('.barrio-sugerencia-item').forEach(el => {
+    el.addEventListener('click', () => {
+      agregarBarrio(el.dataset.slug);
+      inputBarrioBuscar.value = '';
+      contSugerencias.style.display = 'none';
+      inputBarrioBuscar.focus();
+    });
+  });
+}
+
+inputBarrioBuscar.addEventListener('input', () => renderSugerencias(inputBarrioBuscar.value));
+inputBarrioBuscar.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const primera = contSugerencias.querySelector('.barrio-sugerencia-item');
+    if (primera) primera.click();
+  } else if (e.key === 'Escape') {
+    contSugerencias.style.display = 'none';
+  }
+});
+document.addEventListener('click', (e) => {
+  if (!contSugerencias.contains(e.target) && e.target !== inputBarrioBuscar) {
+    contSugerencias.style.display = 'none';
+  }
+});
 
 document.getElementById('btn-barrios-todos-caba').addEventListener('click', () => {
-  document.querySelectorAll('.chk-barrio-portal[data-grupo="CABA"]').forEach(c => c.checked = true);
+  BARRIOS.filter(b => b.grupo === 'CABA').forEach(b => barriosSeleccionadosSet.add(b.slug));
+  renderChips();
 });
 document.getElementById('btn-barrios-todos-zn').addEventListener('click', () => {
-  document.querySelectorAll('.chk-barrio-portal[data-grupo="Zona Norte"]').forEach(c => c.checked = true);
+  BARRIOS.filter(b => b.grupo === 'Zona Norte').forEach(b => barriosSeleccionadosSet.add(b.slug));
+  renderChips();
 });
 document.getElementById('btn-barrios-ninguno').addEventListener('click', () => {
-  document.querySelectorAll('.chk-barrio-portal').forEach(c => c.checked = false);
+  barriosSeleccionadosSet.clear();
+  renderChips();
 });
 
 function barriosSeleccionados() {
-  return Array.from(document.querySelectorAll('.chk-barrio-portal:checked')).map(el => ({
-    slug: el.value, nombre: el.dataset.nombre, grupo: el.dataset.grupo, partidoSlug: el.dataset.partido || null
-  }));
+  return Array.from(barriosSeleccionadosSet)
+    .map(slug => BARRIOS.find(b => b.slug === slug))
+    .filter(Boolean);
 }
 
 function agruparPorPartido(seleccionados) {
