@@ -15,6 +15,11 @@
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 <style>
+.solo-admin { display: none; }
+body.modo-admin-activo .solo-admin { display: block; }
+#btn-modo-admin { opacity: .35; font-size: 10px; }
+#btn-modo-admin:hover { opacity: .8; }
+
 :root {
   --orange:  #FF5C33;
   --dark:    #333333;
@@ -613,12 +618,12 @@ main {
           <span class="swatch" style="background:transparent; border:2px solid #FF5C33; border-radius:50%;"></span>
           <label for="chk-radio10km">Radio de 1km por sede</label>
         </div>
-        <div class="layer-item" style="margin-top:.3rem;">
+        <div class="layer-item solo-admin" style="margin-top:.3rem;">
           <input type="checkbox" id="chk-saturacion">
           <span class="swatch" style="background:linear-gradient(90deg,#FCA35D,#B71C1C);"></span>
           <label for="chk-saturacion">Saturación (solapamiento 1km)</label>
         </div>
-        <div id="legend-saturacion" class="legend-box" style="margin-top:.5rem;">
+        <div id="legend-saturacion" class="legend-box solo-admin" style="margin-top:.5rem;">
           <div class="legend-row"><span class="legend-swatch" style="background:#FCA35D;"></span>1 sede cerca</div>
           <div class="legend-row"><span class="legend-swatch" style="background:#FF7A3D;"></span>2 sedes se superponen</div>
           <div class="legend-row"><span class="legend-swatch" style="background:#FF3D3D;"></span>3 sedes se superponen</div>
@@ -663,7 +668,7 @@ main {
       </div>
     </div>
 
-    <div class="panel">
+    <div class="panel solo-admin">
       <div class="panel-title collapsible-header" data-target="body-heatmap">
         <span>Mapa de calor</span>
         <span class="collapse-arrow">▼</span>
@@ -690,6 +695,25 @@ main {
 
         <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.5rem;">
           CSV: columnas <code>lat</code>/<code>lon</code>, opcional <code>peso</code>.
+        </div>
+      </div>
+    </div>
+
+    <div class="panel solo-admin">
+      <div class="panel-title collapsible-header" data-target="body-zonas-admin">
+        <span>Zonas (admin)</span>
+        <span class="collapse-arrow">▼</span>
+      </div>
+      <div class="panel-body" id="body-zonas-admin">
+        <div class="layer-item">
+          <input type="checkbox" id="chk-zonas-admin" checked>
+          <label for="chk-zonas-admin">Mostrar zonas (admin)</label>
+        </div>
+        <button id="btn-dibujar-admin" class="tool-btn" style="margin-top:.5rem;">Dibujar zona</button>
+        <button id="btn-editar-admin" class="tool-btn">Editar formas</button>
+        <div id="dibujo-admin-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
+        <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.5rem;">
+          Esto se guarda para todos los que entren en modo admin (no es local a este navegador).
         </div>
       </div>
     </div>
@@ -818,7 +842,7 @@ main {
       </div>
     </div>
 
-    <div class="panel">
+    <div class="panel solo-admin">
       <div class="panel-title collapsible-header" data-target="body-locales">
         <span>Locales comerciales</span>
         <span class="collapse-arrow">▼</span>
@@ -837,6 +861,10 @@ main {
     </div>
 
     </div><!-- /tab-content-busqueda -->
+
+    <div style="text-align:center; margin-top:1.5rem; padding-bottom:.5rem;">
+      <button id="btn-modo-admin" style="background:none; border:none; color:var(--muted); cursor:pointer; letter-spacing:.05em;">· modo admin ·</button>
+    </div>
 
   </aside>
 
@@ -858,6 +886,18 @@ main {
     <div style="display:flex; gap:.5rem; margin-top:1rem;">
       <button id="zona-nombre-cancelar" style="flex:1; background:transparent; border:1px solid var(--border); color:var(--muted); padding:.5rem; border-radius:6px; font-size:12px; cursor:pointer;">Cancelar</button>
       <button id="zona-nombre-guardar" style="flex:1; background:var(--orange); border:none; color:white; padding:.5rem; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="modo-admin-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:3000; align-items:center; justify-content:center;">
+  <div style="background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:1.25rem; width:300px; box-shadow:0 8px 24px rgba(0,0,0,0.5);">
+    <div style="font-family:'Poppins',sans-serif; font-weight:600; color:var(--orange); font-size:14px; margin-bottom:.7rem;">Modo admin</div>
+    <input id="modo-admin-input" type="password" placeholder="Contraseña" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.6rem; border-radius:6px; font-size:13px; font-family:inherit; outline:none;">
+    <div id="modo-admin-error" style="font-size:11px; color:#FF3D3D; margin-top:.4rem; min-height:14px;"></div>
+    <div style="display:flex; gap:.5rem; margin-top:.8rem;">
+      <button id="modo-admin-cancelar" style="flex:1; background:transparent; border:1px solid var(--border); color:var(--muted); padding:.5rem; border-radius:6px; font-size:12px; cursor:pointer;">Cancelar</button>
+      <button id="modo-admin-entrar" style="flex:1; background:var(--orange); border:none; color:white; padding:.5rem; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">Entrar</button>
     </div>
   </div>
 </div>

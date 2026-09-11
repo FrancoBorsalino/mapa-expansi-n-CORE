@@ -1037,6 +1037,14 @@ btnDibujar.addEventListener('click', () => {
 });
 
 map.on(L.Draw.Event.CREATED, async (e) => {
+  if (dibujandoZonaAdmin) {
+    const layer = e.layer;
+    layer.setStyle && layer.setStyle(estiloZonaAdmin());
+    adminDrawnItems.addLayer(layer);
+    btnDibujarAdmin.classList.remove('active');
+    guardarZonasAdmin();
+    return;
+  }
   const layer = e.layer;
   layer.setStyle && layer.setStyle(estiloZonaDibujada());
   layer._barriosDetectados = detectarBarriosEnZona(layer);
@@ -1165,6 +1173,7 @@ document.getElementById('input-locales').addEventListener('change', (e) => {
       }
       localesStatus.textContent = `${n} locales cargados y guardados. Reemplaza la carga anterior.`;
       btnQuitarLocales.style.display = 'block';
+      if (modoAdminActivo) syncCapaAdmin('locales', data, localesStatus, 'locales cargados');
     } catch (err) { localesStatus.textContent = 'El archivo no es un geojson válido.'; }
     e.target.value = '';
   };
@@ -1336,7 +1345,12 @@ document.getElementById('input-heatmap').addEventListener('change', (e) => {
       heatSucursalesSeleccionadas.clear();
       renderFiltroSucursales();
       renderHeatmap(puntos);
-      heatmapStatus.textContent = `${puntos.length} ubicaciones cargadas (solo en esta sesión, no se guardan).`;
+      if (modoAdminActivo) {
+        heatmapStatus.textContent = `${puntos.length} ubicaciones cargadas.`;
+        syncCapaAdmin('heatmap', puntos, heatmapStatus, `${puntos.length} ubicaciones cargadas`);
+      } else {
+        heatmapStatus.textContent = `${puntos.length} ubicaciones cargadas (solo en esta sesión, no se guardan).`;
+      }
     } catch (err) {
       heatmapStatus.textContent = 'No se pudo leer el archivo. Verificá que sea un CSV o GeoJSON válido.';
     }
@@ -1741,3 +1755,150 @@ document.getElementById('btn-buscar-ml').addEventListener('click', () => {
     ? 'El navegador bloqueó alguna pestaña. Permitile pop-ups a este sitio y volvé a intentar.'
     : `Abriendo ${claves.length} búsqueda${claves.length > 1 ? 's' : ''} en MercadoLibre (CABA + partidos por separado).`;
 });
+
+// ================= MODO ADMIN =================
+// Capas visibles solo para quien sepa la contraseña de "modo admin".
+// Se sincronizan con un Cloudflare Worker (KV), no dependen del navegador de cada uno.
+
+const WORKER_URL = 'https://core-mapa-interno.fl-borsalino.workers.dev';
+const LS_ADMIN_PW_KEY = 'core_modo_admin_pw'; // sessionStorage: se pierde al cerrar la pestaña
+
+let modoAdminActivo = false;
+let dibujandoZonaAdmin = false;
+
+// ---- Zonas dibujadas exclusivas de modo admin (separadas de las normales) ----
+const adminDrawnItems = new L.FeatureGroup().addTo(map);
+function estiloZonaAdmin() { return { color: '#4C9AFF', weight: 2, fillColor: '#4C9AFF', fillOpacity: 0.22 }; }
+
+document.getElementById('chk-zonas-admin').addEventListener('change', e => {
+  if (e.target.checked) map.addLayer(adminDrawnItems); else map.removeLayer(adminDrawnItems);
+});
+
+const btnDibujarAdmin = document.getElementById('btn-dibujar-admin');
+const adminDrawPolygonHandler = new L.Draw.Polygon(map, { shapeOptions: estiloZonaAdmin(), showArea: true });
+btnDibujarAdmin.addEventListener('click', () => {
+  if (btnDibujarAdmin.classList.contains('active')) {
+    adminDrawPolygonHandler.disable();
+    btnDibujarAdmin.classList.remove('active');
+    dibujandoZonaAdmin = false;
+  } else {
+    dibujandoZonaAdmin = true;
+    adminDrawPolygonHandler.enable();
+    btnDibujarAdmin.classList.add('active');
+  }
+});
+
+const editHandlerAdmin = new L.EditToolbar.Edit(map, { featureGroup: adminDrawnItems });
+const btnEditarAdmin = document.getElementById('btn-editar-admin');
+btnEditarAdmin.addEventListener('click', () => {
+  if (btnEditarAdmin.classList.contains('active')) {
+    editHandlerAdmin.save(); editHandlerAdmin.disable();
+    btnEditarAdmin.classList.remove('active'); btnEditarAdmin.innerHTML = 'Editar formas';
+    guardarZonasAdmin();
+  } else {
+    editHandlerAdmin.enable();
+    btnEditarAdmin.classList.add('active'); btnEditarAdmin.innerHTML = 'Listo (guardar)';
+    document.getElementById('dibujo-admin-status').textContent = 'Arrastrá los vértices para modificar la forma.';
+  }
+});
+
+function guardarZonasAdmin() {
+  syncCapaAdmin('zonas_admin', adminDrawnItems.toGeoJSON(), document.getElementById('dibujo-admin-status'), 'Zonas (admin) guardadas');
+}
+
+// Sube una capa al Worker. Solo tiene efecto si ya estamos en modo admin.
+async function syncCapaAdmin(capaId, data, statusEl, mensajeOk) {
+  if (!modoAdminActivo) return;
+  try {
+    const pw = sessionStorage.getItem(LS_ADMIN_PW_KEY);
+    const resp = await fetch(`${WORKER_URL}/api/guardar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw, capaId, data }),
+    });
+    if (!resp.ok) throw new Error('No autorizado');
+    if (statusEl) statusEl.textContent = `${mensajeOk} — sincronizado para todos.`;
+  } catch (err) {
+    if (statusEl) statusEl.textContent = `${mensajeOk} (no se pudo sincronizar — revisá tu conexión).`;
+  }
+}
+
+// Pide al Worker las capas guardadas. Devuelve { heatmap, locales, zonas_admin } o tira error si la clave está mal.
+async function pedirCapasAdmin(pw) {
+  const resp = await fetch(`${WORKER_URL}/api/capas`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pw }),
+  });
+  if (!resp.ok) throw new Error('Contraseña incorrecta');
+  const body = await resp.json();
+  return body.capas;
+}
+
+function pintarCapasAdmin(capas) {
+  if (capas.heatmap && capas.heatmap.length) {
+    heatPuntosOriginales = capas.heatmap;
+    heatSucursalesSeleccionadas.clear();
+    renderFiltroSucursales();
+    renderHeatmap(capas.heatmap);
+    heatmapStatus.textContent = `${capas.heatmap.length} ubicaciones cargadas.`;
+  }
+  if (capas.locales) {
+    const n = renderLocales(capas.locales);
+    localesStatus.textContent = `${n} locales cargados.`;
+    btnQuitarLocales.style.display = 'block';
+  }
+  if (capas.zonas_admin && capas.zonas_admin.features && capas.zonas_admin.features.length) {
+    adminDrawnItems.clearLayers();
+    L.geoJSON(capas.zonas_admin, { style: estiloZonaAdmin }).eachLayer(l => adminDrawnItems.addLayer(l));
+  }
+}
+
+function activarModoAdmin() {
+  modoAdminActivo = true;
+  document.body.classList.add('modo-admin-activo');
+}
+
+// ---- UI: botón discreto + modal de contraseña ----
+const modoAdminOverlay = document.getElementById('modo-admin-overlay');
+const modoAdminInput = document.getElementById('modo-admin-input');
+const modoAdminError = document.getElementById('modo-admin-error');
+
+document.getElementById('btn-modo-admin').addEventListener('click', () => {
+  modoAdminOverlay.style.display = 'flex';
+  modoAdminInput.value = '';
+  modoAdminError.textContent = '';
+  modoAdminInput.focus();
+});
+document.getElementById('modo-admin-cancelar').addEventListener('click', () => {
+  modoAdminOverlay.style.display = 'none';
+});
+modoAdminInput.addEventListener('keydown', e => { if (e.key === 'Enter') intentarEntrarModoAdmin(); });
+document.getElementById('modo-admin-entrar').addEventListener('click', intentarEntrarModoAdmin);
+
+async function intentarEntrarModoAdmin() {
+  const pw = modoAdminInput.value;
+  modoAdminError.textContent = 'Verificando…';
+  try {
+    const capas = await pedirCapasAdmin(pw);
+    sessionStorage.setItem(LS_ADMIN_PW_KEY, pw);
+    activarModoAdmin();
+    pintarCapasAdmin(capas);
+    modoAdminOverlay.style.display = 'none';
+  } catch (err) {
+    modoAdminError.textContent = 'Contraseña incorrecta.';
+  }
+}
+
+// Si ya se entró en esta pestaña del navegador, no volver a pedir la contraseña al recargar.
+(async function restaurarModoAdminSiCorresponde() {
+  const pw = sessionStorage.getItem(LS_ADMIN_PW_KEY);
+  if (!pw) return;
+  try {
+    const capas = await pedirCapasAdmin(pw);
+    activarModoAdmin();
+    pintarCapasAdmin(capas);
+  } catch (err) {
+    sessionStorage.removeItem(LS_ADMIN_PW_KEY);
+  }
+})();
