@@ -927,7 +927,7 @@ map.on('click', (e) => {
   botonesDetectarBarrio.forEach(b => b.classList.remove('active'));
 });
 
-// ---------- Dibujo de zonas (persistente en localStorage + export/import) ----------
+// ---------- Dibujo de zonas: sistema genérico, reutilizado por "modo normal" (caché local) y "Zonas (admin)" (sincronizado con el Worker) ----------
 const LS_DIBUJOS_KEY = 'core_mapa_dibujos_v1';
 const drawnItems = new L.FeatureGroup().addTo(map);
 document.getElementById('chk-zonas-dibujadas').addEventListener('change', e => {
@@ -935,7 +935,13 @@ document.getElementById('chk-zonas-dibujadas').addEventListener('change', e => {
 });
 const dibujoStatus = document.getElementById('dibujo-status');
 
+const adminDrawnItems = new L.FeatureGroup().addTo(map);
+document.getElementById('chk-zonas-admin').addEventListener('change', e => {
+  if (e.target.checked) map.addLayer(adminDrawnItems); else map.removeLayer(adminDrawnItems);
+});
+
 function estiloZonaDibujada() { return { color: '#A78BFA', weight: 2, fillColor: '#A78BFA', fillOpacity: 0.22 }; }
+function estiloZonaAdmin() { return { color: '#4C9AFF', weight: 2, fillColor: '#4C9AFF', fillOpacity: 0.22 }; }
 
 // ---------- Modal de texto multilínea (para nombrar/renombrar zonas) ----------
 function pedirNombreZona(titulo, valorInicial) {
@@ -970,11 +976,11 @@ function pedirNombreZona(titulo, valorInicial) {
   });
 }
 
-function bindZonaPopup(layer, label) {
+// Popup con nombre / renombrar / borrar / sumar a la búsqueda — igual para cualquier "sistema" de zonas (normal o admin).
+function bindZonaPopupGenerico(layer, label, sistema) {
   layer._zonaLabel = label || 'Zona sin nombre';
   const idBotonTildar = `tildar-barrios-${L.Util.stamp(layer)}`;
 
-  // Etiqueta visible siempre sobre la zona (no hace falta hacer click)
   const labelHtmlInicial = layer._zonaLabel.replace(/\n/g, '<br>');
   if (layer._zonaTooltip) {
     layer.setTooltipContent(labelHtmlInicial);
@@ -983,9 +989,6 @@ function bindZonaPopup(layer, label) {
     layer._zonaTooltip = true;
   }
 
-  // El contenido del popup se recalcula CADA VEZ que se abre (no solo una
-  // vez al crear/renombrar la zona), así los barrios siempre están al día
-  // aunque los límites de CABA hayan terminado de cargar recién después.
   layer.bindPopup(() => {
     const labelHtml = layer._zonaLabel.replace(/\n/g, '<br>');
     if (barriosCABA.length) {
@@ -1010,7 +1013,7 @@ function bindZonaPopup(layer, label) {
   });
   layer.on('popupopen', () => {
     const btnBorrar = document.getElementById(`borrar-zona-${L.Util.stamp(layer)}`);
-    if (btnBorrar) btnBorrar.addEventListener('click', () => { drawnItems.removeLayer(layer); guardarDibujos(); map.closePopup(); });
+    if (btnBorrar) btnBorrar.addEventListener('click', () => { sistema.layerGroup.removeLayer(layer); sistema.guardar(); map.closePopup(); });
 
     const btnRenombrar = document.getElementById(`renombrar-zona-${L.Util.stamp(layer)}`);
     if (btnRenombrar) btnRenombrar.addEventListener('click', async () => {
@@ -1020,9 +1023,9 @@ function bindZonaPopup(layer, label) {
       const label = nuevoNombre.trim() || 'Zona sin nombre';
       layer.feature = layer.feature || { type: 'Feature', properties: {} };
       layer.feature.properties.label = label;
-      bindZonaPopup(layer, label);
-      guardarDibujos();
-      dibujoStatus.textContent = 'Zona renombrada.';
+      bindZonaPopupGenerico(layer, label, sistema);
+      sistema.guardar();
+      sistema.statusEl.textContent = 'Zona renombrada.';
     });
 
     const btnTildar = document.getElementById(idBotonTildar);
@@ -1035,64 +1038,134 @@ function bindZonaPopup(layer, label) {
   });
 }
 
-function guardarDibujos() {
-  try { localStorage.setItem(LS_DIBUJOS_KEY, JSON.stringify(drawnItems.toGeoJSON())); }
-  catch (err) { dibujoStatus.textContent = 'No se pudo guardar (almacenamiento del navegador lleno o bloqueado).'; }
+// Único handler de creación de polígonos: despacha al "sistema" que esté dibujando en este momento
+// (normal o admin — solo uno puede estar activo a la vez).
+let sistemaDibujoActivo = null;
+map.on(L.Draw.Event.CREATED, (e) => {
+  if (sistemaDibujoActivo) sistemaDibujoActivo.onCreated(e.layer);
+});
+
+const sistemasZonas = [];
+
+// Arma un sistema completo de "dibujar zonas": dibujar, editar, exportar, importar,
+// nombrar/renombrar/borrar y sumar a la búsqueda. cfg.guardar decide DÓNDE persiste
+// (localStorage para el normal, el Worker para el admin).
+function crearSistemaZonas(cfg) {
+  const btnDibujarLocal = document.getElementById(cfg.ids.dibujar);
+  const btnEditarLocal = document.getElementById(cfg.ids.editar);
+  const btnExportarLocal = document.getElementById(cfg.ids.exportar);
+  const btnImportarLocal = document.getElementById(cfg.ids.importar);
+  const inputImportarLocal = document.getElementById(cfg.ids.inputImportar);
+  const statusEl = document.getElementById(cfg.ids.status);
+  const drawHandler = new L.Draw.Polygon(map, { shapeOptions: cfg.estilo(), showArea: true });
+  const editHandler = new L.EditToolbar.Edit(map, { featureGroup: cfg.layerGroup });
+
+  const sistema = {
+    layerGroup: cfg.layerGroup,
+    statusEl,
+    btnDibujar: btnDibujarLocal,
+    drawHandler,
+    guardar() { cfg.guardar(cfg.layerGroup.toGeoJSON(), statusEl); },
+    async onCreated(layer) {
+      layer.setStyle && layer.setStyle(cfg.estilo());
+      layer._barriosDetectados = detectarBarriosEnZona(layer);
+      const nombre = await pedirNombreZona('Nombre de la zona', '');
+      const label = (nombre && nombre.trim()) || 'Zona sin nombre';
+      bindZonaPopupGenerico(layer, label, sistema);
+      layer.feature = { type: 'Feature', properties: { label } };
+      cfg.layerGroup.addLayer(layer);
+      sistema.guardar();
+      btnDibujarLocal.classList.remove('active');
+      sistemaDibujoActivo = null;
+      const avisoBarrios = layer._barriosDetectados.length ? ` — barrios detectados: ${layer._barriosDetectados.join(', ')}` : '';
+      statusEl.textContent = `Zona "${label.replace(/\n/g, ' / ')}" guardada${avisoBarrios}.`;
+    },
+  };
+
+  btnDibujarLocal.addEventListener('click', () => {
+    if (btnDibujarLocal.classList.contains('active')) {
+      drawHandler.disable(); btnDibujarLocal.classList.remove('active'); sistemaDibujoActivo = null;
+    } else {
+      // Solo un sistema puede estar dibujando a la vez.
+      sistemasZonas.forEach(s => { s.drawHandler.disable(); s.btnDibujar.classList.remove('active'); });
+      drawHandler.enable(); btnDibujarLocal.classList.add('active'); sistemaDibujoActivo = sistema;
+    }
+  });
+
+  btnEditarLocal.addEventListener('click', () => {
+    if (btnEditarLocal.classList.contains('active')) {
+      editHandler.save(); editHandler.disable();
+      btnEditarLocal.classList.remove('active'); btnEditarLocal.innerHTML = 'Editar formas';
+      sistema.guardar(); statusEl.textContent = 'Cambios guardados.';
+    } else {
+      editHandler.enable();
+      btnEditarLocal.classList.add('active'); btnEditarLocal.innerHTML = 'Listo (guardar)';
+      statusEl.textContent = 'Arrastrá los vértices para modificar la forma.';
+    }
+  });
+
+  btnExportarLocal.addEventListener('click', () => {
+    const data = cfg.layerGroup.toGeoJSON();
+    if (!data.features.length) { statusEl.textContent = 'No hay zonas para exportar.'; return; }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/geo+json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `core_zonas_${cfg.nombreArchivo}_${new Date().toISOString().slice(0,10)}.geojson`;
+    a.click(); URL.revokeObjectURL(url);
+    statusEl.textContent = 'Zonas exportadas.';
+  });
+
+  btnImportarLocal.addEventListener('click', () => inputImportarLocal.click());
+  inputImportarLocal.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        L.geoJSON(data, { style: cfg.estilo, onEachFeature: (f, l) => bindZonaPopupGenerico(l, f.properties && f.properties.label, sistema) }).eachLayer(l => cfg.layerGroup.addLayer(l));
+        statusEl.textContent = 'Zonas importadas y sumadas a las existentes.';
+        sistema.guardar();
+      } catch (err) { statusEl.textContent = 'El archivo no es un geojson válido.'; }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  sistemasZonas.push(sistema);
+  return sistema;
 }
 
-function cargarDibujos() {
+const sistemaZonasNormal = crearSistemaZonas({
+  layerGroup: drawnItems,
+  estilo: estiloZonaDibujada,
+  nombreArchivo: 'dibujos',
+  ids: { dibujar: 'btn-dibujar', editar: 'btn-editar-dibujos', exportar: 'btn-exportar-dibujos', importar: 'btn-importar-dibujos', inputImportar: 'input-importar-dibujos', status: 'dibujo-status' },
+  guardar(geojson, statusEl) {
+    try { localStorage.setItem(LS_DIBUJOS_KEY, JSON.stringify(geojson)); }
+    catch (err) { statusEl.textContent = 'No se pudo guardar (almacenamiento del navegador lleno o bloqueado).'; }
+  },
+});
+
+const sistemaZonasAdmin = crearSistemaZonas({
+  layerGroup: adminDrawnItems,
+  estilo: estiloZonaAdmin,
+  nombreArchivo: 'admin',
+  ids: { dibujar: 'btn-dibujar-admin', editar: 'btn-editar-admin', exportar: 'btn-exportar-admin', importar: 'btn-importar-admin', inputImportar: 'input-importar-admin', status: 'dibujo-admin-status' },
+  guardar(geojson, statusEl) {
+    syncCapaAdmin('zonas_admin', geojson, statusEl, 'Zonas (admin) guardadas');
+  },
+});
+
+// Carga lo que ya estaba dibujado en modo normal (caché local del navegador).
+(function cargarDibujosNormales() {
   try {
     const raw = localStorage.getItem(LS_DIBUJOS_KEY);
     if (!raw) return;
     const data = JSON.parse(raw);
-    L.geoJSON(data, { style: estiloZonaDibujada, onEachFeature: (f, layer) => bindZonaPopup(layer, f.properties && f.properties.label) }).eachLayer(l => drawnItems.addLayer(l));
+    L.geoJSON(data, { style: estiloZonaDibujada, onEachFeature: (f, layer) => bindZonaPopupGenerico(layer, f.properties && f.properties.label, sistemaZonasNormal) }).eachLayer(l => drawnItems.addLayer(l));
   } catch (err) { console.warn('No se pudieron cargar los dibujos guardados', err); }
-}
-cargarDibujos();
-
-const drawPolygonHandler = new L.Draw.Polygon(map, { shapeOptions: estiloZonaDibujada(), showArea: true });
-const btnDibujar = document.getElementById('btn-dibujar');
-btnDibujar.addEventListener('click', () => {
-  if (btnDibujar.classList.contains('active')) { drawPolygonHandler.disable(); btnDibujar.classList.remove('active'); }
-  else { drawPolygonHandler.enable(); btnDibujar.classList.add('active'); }
-});
-
-map.on(L.Draw.Event.CREATED, async (e) => {
-  if (dibujandoZonaAdmin) {
-    const layer = e.layer;
-    layer.setStyle && layer.setStyle(estiloZonaAdmin());
-    adminDrawnItems.addLayer(layer);
-    btnDibujarAdmin.classList.remove('active');
-    guardarZonasAdmin();
-    return;
-  }
-  const layer = e.layer;
-  layer.setStyle && layer.setStyle(estiloZonaDibujada());
-  layer._barriosDetectados = detectarBarriosEnZona(layer);
-  const nombre = await pedirNombreZona('Nombre de la zona', '');
-  const label = (nombre && nombre.trim()) || 'Zona sin nombre';
-  bindZonaPopup(layer, label);
-  layer.feature = { type: 'Feature', properties: { label } };
-  drawnItems.addLayer(layer);
-  guardarDibujos();
-  btnDibujar.classList.remove('active');
-  const avisoBarrios = layer._barriosDetectados.length ? ` — barrios detectados: ${layer._barriosDetectados.join(', ')}` : '';
-  dibujoStatus.textContent = `Zona "${label.replace(/\n/g, ' / ')}" guardada${avisoBarrios}.`;
-});
-
-const editHandler = new L.EditToolbar.Edit(map, { featureGroup: drawnItems });
-const btnEditar = document.getElementById('btn-editar-dibujos');
-btnEditar.addEventListener('click', () => {
-  if (btnEditar.classList.contains('active')) {
-    editHandler.save(); editHandler.disable();
-    btnEditar.classList.remove('active'); btnEditar.innerHTML = 'Editar formas';
-    guardarDibujos(); dibujoStatus.textContent = 'Cambios guardados.';
-  } else {
-    editHandler.enable();
-    btnEditar.classList.add('active'); btnEditar.innerHTML = 'Listo (guardar)';
-    dibujoStatus.textContent = 'Arrastrá los vértices para modificar la forma.';
-  }
-});
+})();
 
 document.getElementById('btn-exportar-dibujos').addEventListener('click', () => {
   const data = drawnItems.toGeoJSON();
@@ -1785,78 +1858,6 @@ const WORKER_URL = 'https://core-mapa-interno.fl-borsalino.workers.dev';
 const LS_ADMIN_PW_KEY = 'core_modo_admin_pw'; // sessionStorage: se pierde al cerrar la pestaña
 
 let modoAdminActivo = false;
-let dibujandoZonaAdmin = false;
-
-// ---- Zonas dibujadas exclusivas de modo admin (separadas de las normales) ----
-const adminDrawnItems = new L.FeatureGroup().addTo(map);
-function estiloZonaAdmin() { return { color: '#4C9AFF', weight: 2, fillColor: '#4C9AFF', fillOpacity: 0.22 }; }
-
-document.getElementById('chk-zonas-admin').addEventListener('change', e => {
-  if (e.target.checked) map.addLayer(adminDrawnItems); else map.removeLayer(adminDrawnItems);
-});
-
-const btnDibujarAdmin = document.getElementById('btn-dibujar-admin');
-const adminDrawPolygonHandler = new L.Draw.Polygon(map, { shapeOptions: estiloZonaAdmin(), showArea: true });
-btnDibujarAdmin.addEventListener('click', () => {
-  if (btnDibujarAdmin.classList.contains('active')) {
-    adminDrawPolygonHandler.disable();
-    btnDibujarAdmin.classList.remove('active');
-    dibujandoZonaAdmin = false;
-  } else {
-    dibujandoZonaAdmin = true;
-    adminDrawPolygonHandler.enable();
-    btnDibujarAdmin.classList.add('active');
-  }
-});
-
-const editHandlerAdmin = new L.EditToolbar.Edit(map, { featureGroup: adminDrawnItems });
-const btnEditarAdmin = document.getElementById('btn-editar-admin');
-btnEditarAdmin.addEventListener('click', () => {
-  if (btnEditarAdmin.classList.contains('active')) {
-    editHandlerAdmin.save(); editHandlerAdmin.disable();
-    btnEditarAdmin.classList.remove('active'); btnEditarAdmin.innerHTML = 'Editar formas';
-    guardarZonasAdmin();
-  } else {
-    editHandlerAdmin.enable();
-    btnEditarAdmin.classList.add('active'); btnEditarAdmin.innerHTML = 'Listo (guardar)';
-    document.getElementById('dibujo-admin-status').textContent = 'Arrastrá los vértices para modificar la forma.';
-  }
-});
-
-function guardarZonasAdmin() {
-  syncCapaAdmin('zonas_admin', adminDrawnItems.toGeoJSON(), document.getElementById('dibujo-admin-status'), 'Zonas (admin) guardadas');
-}
-
-document.getElementById('btn-exportar-admin').addEventListener('click', () => {
-  const data = adminDrawnItems.toGeoJSON();
-  const statusEl = document.getElementById('dibujo-admin-status');
-  if (!data.features.length) { statusEl.textContent = 'No hay zonas (admin) para exportar.'; return; }
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/geo+json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `core_zonas_admin_${new Date().toISOString().slice(0,10)}.geojson`;
-  a.click(); URL.revokeObjectURL(url);
-  statusEl.textContent = 'Zonas (admin) exportadas.';
-});
-
-const inputImportarAdmin = document.getElementById('input-importar-admin');
-document.getElementById('btn-importar-admin').addEventListener('click', () => inputImportarAdmin.click());
-inputImportarAdmin.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    const statusEl = document.getElementById('dibujo-admin-status');
-    try {
-      const data = JSON.parse(ev.target.result);
-      L.geoJSON(data, { style: estiloZonaAdmin }).eachLayer(l => adminDrawnItems.addLayer(l));
-      statusEl.textContent = 'Zonas (admin) importadas y sumadas a las existentes.';
-      guardarZonasAdmin();
-    } catch (err) { statusEl.textContent = 'El archivo no es un geojson válido.'; }
-    e.target.value = '';
-  };
-  reader.readAsText(file);
-});
 
 // Sube una capa al Worker. Solo tiene efecto si ya estamos en modo admin.
 async function syncCapaAdmin(capaId, data, statusEl, mensajeOk) {
@@ -1902,7 +1903,7 @@ function pintarCapasAdmin(capas) {
   }
   if (capas.zonas_admin && capas.zonas_admin.features && capas.zonas_admin.features.length) {
     adminDrawnItems.clearLayers();
-    L.geoJSON(capas.zonas_admin, { style: estiloZonaAdmin }).eachLayer(l => adminDrawnItems.addLayer(l));
+    L.geoJSON(capas.zonas_admin, { style: estiloZonaAdmin, onEachFeature: (f, layer) => bindZonaPopupGenerico(layer, f.properties && f.properties.label, sistemaZonasAdmin) }).eachLayer(l => adminDrawnItems.addLayer(l));
   }
 }
 
@@ -1911,6 +1912,10 @@ let contornoEstabaActivoAntesDeAdmin = false;
 function activarModoAdmin() {
   modoAdminActivo = true;
   document.body.classList.add('modo-admin-activo');
+
+  // Apaga cualquier herramienta de dibujo que haya quedado activa en modo normal.
+  sistemasZonas.forEach(s => { s.drawHandler.disable(); s.btnDibujar.classList.remove('active'); });
+  sistemaDibujoActivo = null;
 
   // Oculta del mapa lo que en modo normal vive en "Herramientas" (queda en el caché de cada uno,
   // pero no tiene sentido mostrarlo junto a las capas internas). En "Zonas (admin)" hay versiones
@@ -1930,6 +1935,10 @@ function salirModoAdmin() {
   modoAdminActivo = false;
   document.body.classList.remove('modo-admin-activo');
   sessionStorage.removeItem(LS_ADMIN_PW_KEY);
+
+  // Apaga cualquier herramienta de dibujo que haya quedado activa en modo admin.
+  sistemasZonas.forEach(s => { s.drawHandler.disable(); s.btnDibujar.classList.remove('active'); });
+  sistemaDibujoActivo = null;
 
   // Restaura lo de "Herramientas" (modo normal).
   map.addLayer(medicionLayer);
