@@ -667,6 +667,15 @@ document.getElementById('toggle-herramientas').addEventListener('click', () => {
   herramientasArrow.style.transform = abierto ? 'rotate(0deg)' : 'rotate(180deg)';
 });
 
+// ---------- Desplegable de Zonas (admin) ----------
+const zonasAdminBody = document.getElementById('zonas-admin-body');
+const zonasAdminArrow = document.getElementById('zonas-admin-arrow');
+document.getElementById('toggle-zonas-admin').addEventListener('click', () => {
+  const abierto = zonasAdminBody.style.display === 'block';
+  zonasAdminBody.style.display = abierto ? 'none' : 'block';
+  zonasAdminArrow.style.transform = abierto ? 'rotate(0deg)' : 'rotate(180deg)';
+});
+
 // ---------- Medir distancia (A -> B), mediciones individuales ----------
 const medicionLayer = L.layerGroup().addTo(map);
 let midiendo = false, puntoA = null, medicionCounter = 0;
@@ -1857,6 +1866,17 @@ function pintarCapasAdmin(capas) {
 function activarModoAdmin() {
   modoAdminActivo = true;
   document.body.classList.add('modo-admin-activo');
+
+  // Oculta del mapa lo que en modo normal vive en "Herramientas" (queda en el caché de cada uno,
+  // pero no tiene sentido mostrarlo junto a las capas internas).
+  map.removeLayer(medicionLayer);
+  map.removeLayer(radioPersonalizadoLayer);
+  map.removeLayer(drawnItems);
+  const chkContorno = document.getElementById('chk-contorno-barrios');
+  if (chkContorno.checked && capasActivas['chk-contorno-barrios']) {
+    map.removeLayer(capasActivas['chk-contorno-barrios']);
+    chkContorno.checked = false;
+  }
 }
 
 // ---- UI: botón discreto + modal de contraseña ----

@@ -17,6 +17,7 @@
 <style>
 .solo-admin { display: none; }
 body.modo-admin-activo .solo-admin { display: block; }
+body.modo-admin-activo .solo-normal { display: none; }
 #btn-modo-admin { opacity: .35; font-size: 10px; }
 #btn-modo-admin:hover { opacity: .8; }
 
@@ -550,7 +551,29 @@ main {
       ↺ Apagar todas las capas
     </button>
 
-    <div class="panel">
+    <div class="panel solo-admin">
+      <div class="panel-title" id="toggle-zonas-admin" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; user-select:none;">
+        <span>Zonas (admin)</span>
+        <span id="zonas-admin-arrow" style="transition: transform .2s; font-size:10px;">▼</span>
+      </div>
+
+      <div id="zonas-admin-body" style="display:none; margin-top:.6rem;">
+        <div class="layer-item" style="padding-left:0;">
+          <input type="checkbox" id="chk-zonas-admin" checked>
+          <label for="chk-zonas-admin">Mostrar zonas (admin)</label>
+        </div>
+        <div class="tool-grid" style="margin-top:.5rem;">
+          <button id="btn-dibujar-admin" class="tool-btn">Dibujar zona</button>
+          <button id="btn-editar-admin" class="tool-btn">Editar formas</button>
+        </div>
+        <div id="dibujo-admin-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
+        <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.5rem;">
+          Esto se guarda para todos los que entren en modo admin (no es local a este navegador).
+        </div>
+      </div>
+    </div>
+
+    <div class="panel solo-normal">
       <div class="panel-title" id="toggle-herramientas" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; user-select:none;">
         <span>Herramientas</span>
         <span id="herramientas-arrow" style="transition: transform .2s; font-size:10px;">▼</span>
@@ -687,33 +710,14 @@ main {
         <div id="heatmap-filtro-sucursales" style="display:none; margin-top:.6rem;"></div>
 
         <div id="heatmap-controles" style="display:none; margin-top:.6rem;">
-          <div style="font-size:10.5px; color:var(--muted); margin-bottom:.2rem;">Radio: <span id="heatmap-radio-val">25</span>px</div>
-          <input type="range" id="heatmap-radio" min="8" max="60" value="25" style="width:100%; accent-color:var(--orange);">
-          <div style="font-size:10.5px; color:var(--muted); margin:.4rem 0 .2rem;">Difuminado: <span id="heatmap-blur-val">15</span>px</div>
-          <input type="range" id="heatmap-blur" min="2" max="40" value="15" style="width:100%; accent-color:var(--orange);">
+          <div style="font-size:10.5px; color:var(--muted); margin-bottom:.2rem;">Radio: <span id="heatmap-radio-val">8</span>px</div>
+          <input type="range" id="heatmap-radio" min="8" max="60" value="8" style="width:100%; accent-color:var(--orange);">
+          <div style="font-size:10.5px; color:var(--muted); margin:.4rem 0 .2rem;">Difuminado: <span id="heatmap-blur-val">4</span>px</div>
+          <input type="range" id="heatmap-blur" min="2" max="40" value="4" style="width:100%; accent-color:var(--orange);">
         </div>
 
         <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.5rem;">
           CSV: columnas <code>lat</code>/<code>lon</code>, opcional <code>peso</code>.
-        </div>
-      </div>
-    </div>
-
-    <div class="panel solo-admin">
-      <div class="panel-title collapsible-header" data-target="body-zonas-admin">
-        <span>Zonas (admin)</span>
-        <span class="collapse-arrow">▼</span>
-      </div>
-      <div class="panel-body" id="body-zonas-admin">
-        <div class="layer-item">
-          <input type="checkbox" id="chk-zonas-admin" checked>
-          <label for="chk-zonas-admin">Mostrar zonas (admin)</label>
-        </div>
-        <button id="btn-dibujar-admin" class="tool-btn" style="margin-top:.5rem;">Dibujar zona</button>
-        <button id="btn-editar-admin" class="tool-btn">Editar formas</button>
-        <div id="dibujo-admin-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
-        <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.5rem;">
-          Esto se guarda para todos los que entren en modo admin (no es local a este navegador).
         </div>
       </div>
     </div>
