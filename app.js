@@ -1827,6 +1827,37 @@ function guardarZonasAdmin() {
   syncCapaAdmin('zonas_admin', adminDrawnItems.toGeoJSON(), document.getElementById('dibujo-admin-status'), 'Zonas (admin) guardadas');
 }
 
+document.getElementById('btn-exportar-admin').addEventListener('click', () => {
+  const data = adminDrawnItems.toGeoJSON();
+  const statusEl = document.getElementById('dibujo-admin-status');
+  if (!data.features.length) { statusEl.textContent = 'No hay zonas (admin) para exportar.'; return; }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/geo+json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `core_zonas_admin_${new Date().toISOString().slice(0,10)}.geojson`;
+  a.click(); URL.revokeObjectURL(url);
+  statusEl.textContent = 'Zonas (admin) exportadas.';
+});
+
+const inputImportarAdmin = document.getElementById('input-importar-admin');
+document.getElementById('btn-importar-admin').addEventListener('click', () => inputImportarAdmin.click());
+inputImportarAdmin.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const statusEl = document.getElementById('dibujo-admin-status');
+    try {
+      const data = JSON.parse(ev.target.result);
+      L.geoJSON(data, { style: estiloZonaAdmin }).eachLayer(l => adminDrawnItems.addLayer(l));
+      statusEl.textContent = 'Zonas (admin) importadas y sumadas a las existentes.';
+      guardarZonasAdmin();
+    } catch (err) { statusEl.textContent = 'El archivo no es un geojson válido.'; }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
+
 // Sube una capa al Worker. Solo tiene efecto si ya estamos en modo admin.
 async function syncCapaAdmin(capaId, data, statusEl, mensajeOk) {
   if (!modoAdminActivo) return;
