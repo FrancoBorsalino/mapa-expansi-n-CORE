@@ -558,6 +558,22 @@ main {
       </div>
 
       <div id="zonas-admin-body" style="display:none; margin-top:.6rem;">
+
+        <!-- Medir distancia (admin) -->
+        <button id="btn-medir-admin" class="tool-btn-full">Medir distancia (A→B)</button>
+        <div id="medir-status-admin" style="font-size:10.5px; color:var(--muted); margin-top:.35rem; line-height:1.35;"></div>
+        <button id="btn-clear-medicion-admin" class="tool-btn-full" style="display:none; margin-top:.35rem;">Borrar medición</button>
+
+        <hr style="border:none; border-top:1px solid var(--border); margin:.6rem 0;">
+
+        <!-- Radio personalizado (admin) -->
+        <button id="btn-radio-admin" class="tool-btn-full">Radio personalizado</button>
+        <div id="radio-status-admin" style="font-size:10.5px; color:var(--muted); margin-top:.35rem; line-height:1.35;"></div>
+        <button id="btn-clear-radios-admin" class="tool-btn-full" style="display:none; margin-top:.35rem;">Borrar radios</button>
+
+        <hr style="border:none; border-top:1px solid var(--border); margin:.6rem 0;">
+
+        <!-- Dibujo de zonas: sincronizado (no cache local) -->
         <div class="layer-item" style="padding-left:0;">
           <input type="checkbox" id="chk-zonas-admin" checked>
           <label for="chk-zonas-admin">Mostrar zonas (admin)</label>
@@ -569,6 +585,15 @@ main {
         <div id="dibujo-admin-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
         <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.5rem;">
           Esto se guarda para todos los que entren en modo admin (no es local a este navegador).
+        </div>
+
+        <hr style="border:none; border-top:1px solid var(--border); margin:.6rem 0;">
+
+        <!-- Contorno de barrios (espejo del checkbox normal) -->
+        <div class="layer-item" id="item-contorno-barrios-admin" style="padding-left:0;">
+          <input type="checkbox" id="chk-contorno-barrios-admin">
+          <span class="swatch" style="background:transparent; border:1.5px solid #E9E1FF; border-radius:2px;"></span>
+          <label for="chk-contorno-barrios-admin">Contorno de barrios (CABA + partidos Zona Norte)</label>
         </div>
       </div>
     </div>
@@ -677,20 +702,6 @@ main {
       </div>
     </div>
 
-    <div class="panel">
-      <div class="panel-title collapsible-header" data-target="body-competencia">
-        <span>Competencia</span>
-        <span class="collapse-arrow">▼</span>
-      </div>
-      <div class="panel-body" id="body-competencia">
-        <div class="layer-item">
-          <input type="checkbox" id="chk-deportivos">
-          <span class="swatch" style="background:#4C9AFF;"></span>
-          <label for="chk-deportivos">Establecimientos deportivos</label>
-        </div>
-      </div>
-    </div>
-
     <div class="panel solo-admin">
       <div class="panel-title collapsible-header" data-target="body-heatmap">
         <span>Mapa de calor</span>
@@ -698,7 +709,7 @@ main {
       </div>
       <div class="panel-body" id="body-heatmap">
         <div class="layer-item">
-          <input type="checkbox" id="chk-heatmap" checked>
+          <input type="checkbox" id="chk-heatmap">
           <span class="swatch" style="background:radial-gradient(circle, #FF3D3D, transparent);"></span>
           <label for="chk-heatmap">Densidad</label>
         </div>
@@ -718,6 +729,20 @@ main {
 
         <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.5rem;">
           CSV: columnas <code>lat</code>/<code>lon</code>, opcional <code>peso</code>.
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title collapsible-header" data-target="body-competencia">
+        <span>Competencia</span>
+        <span class="collapse-arrow">▼</span>
+      </div>
+      <div class="panel-body" id="body-competencia">
+        <div class="layer-item">
+          <input type="checkbox" id="chk-deportivos">
+          <span class="swatch" style="background:#4C9AFF;"></span>
+          <label for="chk-deportivos">Establecimientos deportivos</label>
         </div>
       </div>
     </div>
@@ -867,7 +892,8 @@ main {
     </div><!-- /tab-content-busqueda -->
 
     <div style="text-align:center; margin-top:1.5rem; padding-bottom:.5rem;">
-      <button id="btn-modo-admin" style="background:none; border:none; color:var(--muted); cursor:pointer; letter-spacing:.05em;">· modo admin ·</button>
+      <button id="btn-modo-admin" class="solo-normal" style="background:none; border:none; color:var(--muted); cursor:pointer; letter-spacing:.05em;">· modo admin ·</button>
+      <button id="btn-salir-modo-admin" class="solo-admin" style="background:var(--bg3); border:1px solid var(--border); color:var(--text); cursor:pointer; padding:.5rem .8rem; border-radius:8px; font-size:12px;">↩ Volver a modo externo</button>
     </div>
 
   </aside>

@@ -676,99 +676,111 @@ document.getElementById('toggle-zonas-admin').addEventListener('click', () => {
   zonasAdminArrow.style.transform = abierto ? 'rotate(0deg)' : 'rotate(180deg)';
 });
 
-// ---------- Medir distancia (A -> B), mediciones individuales ----------
-const medicionLayer = L.layerGroup().addTo(map);
-let midiendo = false, puntoA = null, medicionCounter = 0;
-const medicionesById = {};
-const btnMedir = document.getElementById('btn-medir');
-const medirStatus = document.getElementById('medir-status');
-const btnClearMedicion = document.getElementById('btn-clear-medicion');
+// ---------- Medir distancia (A -> B) — reutilizable para modo normal y admin ----------
+function initMedicion(sufijo) {
+  const layer = L.layerGroup().addTo(map);
+  let midiendo = false, puntoA = null, contador = 0;
+  const porId = {};
+  const btn = document.getElementById(`btn-medir${sufijo}`);
+  const status = document.getElementById(`medir-status${sufijo}`);
+  const btnClear = document.getElementById(`btn-clear-medicion${sufijo}`);
 
-function iniciarMedicion() { midiendo = true; puntoA = null; btnMedir.classList.add('active'); medirStatus.textContent = 'Hacé click en el primer punto del mapa.'; }
-function cancelarModoMedicion() { midiendo = false; btnMedir.classList.remove('active'); }
-btnMedir.addEventListener('click', () => { midiendo ? (cancelarModoMedicion(), medirStatus.textContent = '') : iniciarMedicion(); });
+  function iniciar() { midiendo = true; puntoA = null; btn.classList.add('active'); status.textContent = 'Hacé click en el primer punto del mapa.'; }
+  function cancelar() { midiendo = false; btn.classList.remove('active'); }
+  btn.addEventListener('click', () => { midiendo ? (cancelar(), status.textContent = '') : iniciar(); });
 
-map.on('click', (e) => {
-  if (!midiendo) return;
-  if (!puntoA) { puntoA = e.latlng; medirStatus.textContent = 'Ahora hacé click en el segundo punto.'; return; }
+  map.on('click', (e) => {
+    if (!midiendo) return;
+    if (!puntoA) { puntoA = e.latlng; status.textContent = 'Ahora hacé click en el segundo punto.'; return; }
 
-  const puntoB = e.latlng;
-  const id = 'med' + (++medicionCounter);
-  const grupo = L.layerGroup().addTo(medicionLayer);
-  L.circleMarker(puntoA, { radius: 5, color: '#FFD23F', fillColor: '#FFD23F', fillOpacity: 1, weight: 2 }).addTo(grupo);
-  L.circleMarker(puntoB, { radius: 5, color: '#FFD23F', fillColor: '#FFD23F', fillOpacity: 1, weight: 2 }).addTo(grupo);
-  const linea = L.polyline([puntoA, puntoB], { color: '#FFD23F', weight: 2.5, dashArray: '8,5', opacity: 0.9 }).addTo(grupo);
-  const distancia = puntoA.distanceTo(puntoB);
-  const label = distancia >= 1000 ? `${(distancia/1000).toFixed(2)} km` : `${Math.round(distancia)} m`;
-  linea.bindTooltip(label, { permanent: true, direction: 'center', className: 'dist-label' });
-  linea.bindPopup(`<div class="popup-title">${label}</div><div class="popup-row" style="margin-top:4px;"><span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-${id}">✕ Borrar esta medición</span></div>`);
-  linea.on('popupopen', () => {
-    const btn = document.getElementById(`borrar-${id}`);
-    if (btn) btn.addEventListener('click', () => {
-      medicionLayer.removeLayer(grupo);
-      delete medicionesById[id];
-      map.closePopup();
-      if (Object.keys(medicionesById).length === 0) btnClearMedicion.style.display = 'none';
+    const puntoB = e.latlng;
+    const id = `med${sufijo}` + (++contador);
+    const grupo = L.layerGroup().addTo(layer);
+    L.circleMarker(puntoA, { radius: 5, color: '#FFD23F', fillColor: '#FFD23F', fillOpacity: 1, weight: 2 }).addTo(grupo);
+    L.circleMarker(puntoB, { radius: 5, color: '#FFD23F', fillColor: '#FFD23F', fillOpacity: 1, weight: 2 }).addTo(grupo);
+    const linea = L.polyline([puntoA, puntoB], { color: '#FFD23F', weight: 2.5, dashArray: '8,5', opacity: 0.9 }).addTo(grupo);
+    const distancia = puntoA.distanceTo(puntoB);
+    const label = distancia >= 1000 ? `${(distancia/1000).toFixed(2)} km` : `${Math.round(distancia)} m`;
+    linea.bindTooltip(label, { permanent: true, direction: 'center', className: 'dist-label' });
+    linea.bindPopup(`<div class="popup-title">${label}</div><div class="popup-row" style="margin-top:4px;"><span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-${id}">✕ Borrar esta medición</span></div>`);
+    linea.on('popupopen', () => {
+      const btnBorrar = document.getElementById(`borrar-${id}`);
+      if (btnBorrar) btnBorrar.addEventListener('click', () => {
+        layer.removeLayer(grupo);
+        delete porId[id];
+        map.closePopup();
+        if (Object.keys(porId).length === 0) btnClear.style.display = 'none';
+      });
     });
+    porId[id] = grupo;
+    status.textContent = `Distancia: ${label} (~${Math.round(distancia/100)} cuadras). Click en la línea para borrarla.`;
+    btnClear.style.display = 'block';
+    cancelar();
   });
-  medicionesById[id] = grupo;
-  medirStatus.textContent = `Distancia: ${label} (~${Math.round(distancia/100)} cuadras). Click en la línea para borrarla.`;
-  btnClearMedicion.style.display = 'block';
-  cancelarModoMedicion();
-});
 
-btnClearMedicion.addEventListener('click', () => {
-  medicionLayer.clearLayers();
-  Object.keys(medicionesById).forEach(id => delete medicionesById[id]);
-  medirStatus.textContent = '';
-  btnClearMedicion.style.display = 'none';
-});
+  btnClear.addEventListener('click', () => {
+    layer.clearLayers();
+    Object.keys(porId).forEach(id => delete porId[id]);
+    status.textContent = '';
+    btnClear.style.display = 'none';
+  });
 
-// ---------- Radio personalizado ----------
-const radioPersonalizadoLayer = L.layerGroup().addTo(map);
-let modoRadio = false, radioCounter = 0;
-const radiosById = {};
-const btnRadio = document.getElementById('btn-radio');
-const radioStatus = document.getElementById('radio-status');
-const btnClearRadios = document.getElementById('btn-clear-radios');
+  return layer;
+}
+const medicionLayer = initMedicion('');
+const medicionLayerAdmin = initMedicion('-admin');
 
-btnRadio.addEventListener('click', () => {
-  modoRadio = !modoRadio;
-  btnRadio.classList.toggle('active', modoRadio);
-  radioStatus.textContent = modoRadio ? 'Hacé click en el mapa para ubicar el centro.' : '';
-});
+// ---------- Radio personalizado — reutilizable para modo normal y admin ----------
+function initRadioPersonalizado(sufijo) {
+  const layer = L.layerGroup().addTo(map);
+  let modoRadio = false, contador = 0;
+  const porId = {};
+  const btn = document.getElementById(`btn-radio${sufijo}`);
+  const status = document.getElementById(`radio-status${sufijo}`);
+  const btnClear = document.getElementById(`btn-clear-radios${sufijo}`);
 
-map.on('click', (e) => {
-  if (!modoRadio) return;
-  const metrosTxt = window.prompt('Radio en metros (ej: 500):', '500');
-  modoRadio = false; btnRadio.classList.remove('active');
-  const metros = parseFloat(metrosTxt);
-  if (!metrosTxt || isNaN(metros) || metros <= 0) { radioStatus.textContent = ''; return; }
-  const id = 'radio' + (++radioCounter);
-  const circulo = L.circle(e.latlng, { radius: metros, color: '#4CE0AF', weight: 1.5, fillColor: '#4CE0AF', fillOpacity: 0.12 }).addTo(radioPersonalizadoLayer);
-  const label = metros >= 1000 ? `${(metros/1000).toFixed(2)}km` : `${Math.round(metros)}m`;
-  circulo.bindTooltip(`Radio ${label}`, { sticky: true });
-  circulo.bindPopup(`<div class="popup-title">Radio ${label}</div><div class="popup-row" style="margin-top:4px;"><span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-${id}">✕ Borrar este radio</span></div>`);
-  circulo.on('popupopen', () => {
-    const btn = document.getElementById(`borrar-${id}`);
-    if (btn) btn.addEventListener('click', () => {
-      radioPersonalizadoLayer.removeLayer(circulo);
-      delete radiosById[id];
-      map.closePopup();
-      if (Object.keys(radiosById).length === 0) btnClearRadios.style.display = 'none';
+  btn.addEventListener('click', () => {
+    modoRadio = !modoRadio;
+    btn.classList.toggle('active', modoRadio);
+    status.textContent = modoRadio ? 'Hacé click en el mapa para ubicar el centro.' : '';
+  });
+
+  map.on('click', (e) => {
+    if (!modoRadio) return;
+    const metrosTxt = window.prompt('Radio en metros (ej: 500):', '500');
+    modoRadio = false; btn.classList.remove('active');
+    const metros = parseFloat(metrosTxt);
+    if (!metrosTxt || isNaN(metros) || metros <= 0) { status.textContent = ''; return; }
+    const id = `radio${sufijo}` + (++contador);
+    const circulo = L.circle(e.latlng, { radius: metros, color: '#4CE0AF', weight: 1.5, fillColor: '#4CE0AF', fillOpacity: 0.12 }).addTo(layer);
+    const label = metros >= 1000 ? `${(metros/1000).toFixed(2)}km` : `${Math.round(metros)}m`;
+    circulo.bindTooltip(`Radio ${label}`, { sticky: true });
+    circulo.bindPopup(`<div class="popup-title">Radio ${label}</div><div class="popup-row" style="margin-top:4px;"><span class="remove-pin" style="cursor:pointer; color:#FF6B6B;" id="borrar-${id}">✕ Borrar este radio</span></div>`);
+    circulo.on('popupopen', () => {
+      const btnBorrar = document.getElementById(`borrar-${id}`);
+      if (btnBorrar) btnBorrar.addEventListener('click', () => {
+        layer.removeLayer(circulo);
+        delete porId[id];
+        map.closePopup();
+        if (Object.keys(porId).length === 0) btnClear.style.display = 'none';
+      });
     });
+    porId[id] = circulo;
+    status.textContent = `Último radio: ${label}. Click en el círculo para borrarlo.`;
+    btnClear.style.display = 'block';
   });
-  radiosById[id] = circulo;
-  radioStatus.textContent = `Último radio: ${label}. Click en el círculo para borrarlo.`;
-  btnClearRadios.style.display = 'block';
-});
 
-btnClearRadios.addEventListener('click', () => {
-  radioPersonalizadoLayer.clearLayers();
-  Object.keys(radiosById).forEach(id => delete radiosById[id]);
-  radioStatus.textContent = '';
-  btnClearRadios.style.display = 'none';
-});
+  btnClear.addEventListener('click', () => {
+    layer.clearLayers();
+    Object.keys(porId).forEach(id => delete porId[id]);
+    status.textContent = '';
+    btnClear.style.display = 'none';
+  });
+
+  return layer;
+}
+const radioPersonalizadoLayer = initRadioPersonalizado('');
+const radioPersonalizadoLayerAdmin = initRadioPersonalizado('-admin');
 
 // ---------- Detectar barrio (click en el mapa / zona dibujada) ----------
 // Usa los límites oficiales de los 48 barrios de CABA (BA Data). Solo
@@ -1863,21 +1875,61 @@ function pintarCapasAdmin(capas) {
   }
 }
 
+let contornoEstabaActivoAntesDeAdmin = false;
+
 function activarModoAdmin() {
   modoAdminActivo = true;
   document.body.classList.add('modo-admin-activo');
 
   // Oculta del mapa lo que en modo normal vive en "Herramientas" (queda en el caché de cada uno,
-  // pero no tiene sentido mostrarlo junto a las capas internas).
+  // pero no tiene sentido mostrarlo junto a las capas internas). En "Zonas (admin)" hay versiones
+  // propias de estas mismas herramientas.
   map.removeLayer(medicionLayer);
   map.removeLayer(radioPersonalizadoLayer);
   map.removeLayer(drawnItems);
   const chkContorno = document.getElementById('chk-contorno-barrios');
+  contornoEstabaActivoAntesDeAdmin = chkContorno.checked;
   if (chkContorno.checked && capasActivas['chk-contorno-barrios']) {
     map.removeLayer(capasActivas['chk-contorno-barrios']);
     chkContorno.checked = false;
   }
 }
+
+function salirModoAdmin() {
+  modoAdminActivo = false;
+  document.body.classList.remove('modo-admin-activo');
+  sessionStorage.removeItem(LS_ADMIN_PW_KEY);
+
+  // Restaura lo de "Herramientas" (modo normal).
+  map.addLayer(medicionLayer);
+  map.addLayer(radioPersonalizadoLayer);
+  map.addLayer(drawnItems);
+  const chkContorno = document.getElementById('chk-contorno-barrios');
+  if (contornoEstabaActivoAntesDeAdmin && capasActivas['chk-contorno-barrios']) {
+    chkContorno.checked = true;
+    map.addLayer(capasActivas['chk-contorno-barrios']);
+  }
+
+  // Saca del mapa las capas internas (heatmap, locales, zonas admin) — no quedan dibujadas
+  // una vez que se salió del modo admin.
+  if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
+  document.getElementById('heatmap-status').textContent = '';
+  document.getElementById('btn-quitar-heatmap').style.display = 'none';
+  localesLayer.clearLayers();
+  document.getElementById('locales-status').textContent = '';
+  document.getElementById('btn-quitar-locales').style.display = 'none';
+  adminDrawnItems.clearLayers();
+}
+
+document.getElementById('btn-salir-modo-admin').addEventListener('click', salirModoAdmin);
+
+// Espejo del checkbox "Contorno de barrios": el de Zonas (admin) controla al de siempre.
+document.getElementById('chk-contorno-barrios-admin').addEventListener('change', (e) => {
+  const real = document.getElementById('chk-contorno-barrios');
+  if (!real) return;
+  real.checked = e.target.checked;
+  real.dispatchEvent(new Event('change'));
+});
 
 // ---- UI: botón discreto + modal de contraseña ----
 const modoAdminOverlay = document.getElementById('modo-admin-overlay');
