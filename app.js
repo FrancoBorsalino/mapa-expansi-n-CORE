@@ -1189,7 +1189,6 @@ let heatLayer = null;
 const heatmapStatus = document.getElementById('heatmap-status');
 const heatmapControles = document.getElementById('heatmap-controles');
 const btnQuitarHeatmap = document.getElementById('btn-quitar-heatmap');
-let heatPuntosActuales = [];
 
 // Parser de CSV que respeta campos entre comillas (pueden tener comas y
 // comillas escapadas "" adentro, como las direcciones completas que
@@ -1238,7 +1237,8 @@ function extraerPuntosDeCSV(text) {
     const lat = parseFloat(fila.lat || fila.latitud || fila.latitude);
     const lon = parseFloat(fila.lon || fila.lng || fila.longitud || fila.longitude);
     const peso = parseFloat(fila.peso || fila.weight || fila.cantidad) || 1;
-    if (!isNaN(lat) && !isNaN(lon)) puntos.push([lat, lon, peso]);
+    const sucursal = (fila.sucursal || fila.sede || '').trim() || 'Sin sucursal';
+    if (!isNaN(lat) && !isNaN(lon)) puntos.push({ lat, lon, peso, sucursal });
   });
   return puntos;
 }
@@ -1250,20 +1250,68 @@ function extraerPuntosDeGeoJSON(data) {
     const [lon, lat] = f.geometry.coordinates;
     const p = f.properties || {};
     const peso = parseFloat(p.peso || p.weight || p.cantidad) || 1;
-    puntos.push([lat, lon, peso]);
+    const sucursal = (p.sucursal || p.sede || '').trim() || 'Sin sucursal';
+    puntos.push({ lat, lon, peso, sucursal });
   });
   return puntos;
 }
 
 function renderHeatmap(puntos) {
   if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
-  heatPuntosActuales = puntos;
   const radio = parseInt(document.getElementById('heatmap-radio').value, 10);
   const blur = parseInt(document.getElementById('heatmap-blur').value, 10);
-  heatLayer = L.heatLayer(puntos, { radius: radio, blur: blur, maxZoom: 17 });
+  heatLayer = L.heatLayer(puntos.map(p => [p.lat, p.lon, p.peso]), { radius: radio, blur: blur, maxZoom: 17 });
   if (document.getElementById('chk-heatmap').checked) heatLayer.addTo(map);
   heatmapControles.style.display = 'block';
   btnQuitarHeatmap.style.display = 'block';
+}
+
+// ---------- Filtro por sucursal ----------
+let heatPuntosOriginales = []; // todos los puntos cargados, sin filtrar
+const heatSucursalesSeleccionadas = new Set(); // sucursales tildadas
+
+function renderFiltroSucursales() {
+  const cont = document.getElementById('heatmap-filtro-sucursales');
+  if (!cont) return;
+  const sucursales = [...new Set(heatPuntosOriginales.map(p => p.sucursal))].sort();
+  if (!sucursales.length) { cont.style.display = 'none'; return; }
+  cont.style.display = 'block';
+  cont.innerHTML = `
+    <div style="display:flex; gap:.4rem; margin-bottom:.4rem;">
+      <button id="btn-heatmap-todas-sucursales" class="tool-btn" style="flex:1; font-size:10px;">Todas</button>
+      <button id="btn-heatmap-ninguna-sucursal" class="tool-btn" style="flex:1; font-size:10px;">Ninguna</button>
+    </div>
+    <div id="heatmap-sucursales-checklist" style="max-height:160px; overflow-y:auto; border:1px solid var(--border); border-radius:6px; padding:.5rem;">
+      ${sucursales.map(s => `
+        <label style="display:flex; align-items:center; gap:.4rem; padding:.15rem 0; font-size:11.5px; cursor:pointer;">
+          <input type="checkbox" class="chk-heatmap-sucursal" value="${s.replace(/"/g,'&quot;')}" checked> ${s}
+        </label>
+      `).join('')}
+    </div>
+  `;
+  sucursales.forEach(s => heatSucursalesSeleccionadas.add(s));
+
+  document.querySelectorAll('.chk-heatmap-sucursal').forEach(chk => {
+    chk.addEventListener('change', () => {
+      if (chk.checked) heatSucursalesSeleccionadas.add(chk.value);
+      else heatSucursalesSeleccionadas.delete(chk.value);
+      aplicarFiltroSucursales();
+    });
+  });
+  document.getElementById('btn-heatmap-todas-sucursales').addEventListener('click', () => {
+    document.querySelectorAll('.chk-heatmap-sucursal').forEach(c => { c.checked = true; heatSucursalesSeleccionadas.add(c.value); });
+    aplicarFiltroSucursales();
+  });
+  document.getElementById('btn-heatmap-ninguna-sucursal').addEventListener('click', () => {
+    document.querySelectorAll('.chk-heatmap-sucursal').forEach(c => { c.checked = false; heatSucursalesSeleccionadas.delete(c.value); });
+    aplicarFiltroSucursales();
+  });
+}
+
+function aplicarFiltroSucursales() {
+  const filtrados = heatPuntosOriginales.filter(p => heatSucursalesSeleccionadas.has(p.sucursal));
+  renderHeatmap(filtrados);
+  heatmapStatus.textContent = `${filtrados.length} de ${heatPuntosOriginales.length} ubicaciones visibles.`;
 }
 
 document.getElementById('btn-cargar-heatmap').addEventListener('click', () => document.getElementById('input-heatmap').click());
@@ -1284,6 +1332,9 @@ document.getElementById('input-heatmap').addEventListener('change', (e) => {
         heatmapStatus.textContent = 'No se encontraron puntos válidos en el archivo. Revisá los nombres de columna (lat/lon).';
         return;
       }
+      heatPuntosOriginales = puntos;
+      heatSucursalesSeleccionadas.clear();
+      renderFiltroSucursales();
       renderHeatmap(puntos);
       heatmapStatus.textContent = `${puntos.length} ubicaciones cargadas (solo en esta sesión, no se guardan).`;
     } catch (err) {
@@ -1296,11 +1347,11 @@ document.getElementById('input-heatmap').addEventListener('change', (e) => {
 
 document.getElementById('heatmap-radio').addEventListener('input', (e) => {
   document.getElementById('heatmap-radio-val').textContent = e.target.value;
-  if (heatLayer) renderHeatmap(heatPuntosActuales);
+  if (heatLayer) aplicarFiltroSucursales();
 });
 document.getElementById('heatmap-blur').addEventListener('input', (e) => {
   document.getElementById('heatmap-blur-val').textContent = e.target.value;
-  if (heatLayer) renderHeatmap(heatPuntosActuales);
+  if (heatLayer) aplicarFiltroSucursales();
 });
 
 document.getElementById('chk-heatmap').addEventListener('change', e => {
@@ -1310,7 +1361,10 @@ document.getElementById('chk-heatmap').addEventListener('change', e => {
 
 btnQuitarHeatmap.addEventListener('click', () => {
   if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
-  heatPuntosActuales = [];
+  heatPuntosOriginales = [];
+  heatSucursalesSeleccionadas.clear();
+  const filtroCont = document.getElementById('heatmap-filtro-sucursales');
+  if (filtroCont) { filtroCont.innerHTML = ''; filtroCont.style.display = 'none'; }
   heatmapStatus.textContent = '';
   heatmapControles.style.display = 'none';
   btnQuitarHeatmap.style.display = 'none';
