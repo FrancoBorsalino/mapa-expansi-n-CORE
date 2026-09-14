@@ -15,9 +15,6 @@
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 <style>
-.solo-admin { display: none; }
-body.modo-admin-activo .solo-admin { display: block; }
-body.modo-admin-activo .solo-normal { display: none; }
 #btn-modo-admin { opacity: .35; font-size: 10px; }
 #btn-modo-admin:hover { opacity: .8; }
 
@@ -506,6 +503,9 @@ main {
   #sidebar { width: 220px; }
   .header-title { display: none; }
 }
+.solo-admin { display: none; }
+body.modo-admin-activo .solo-admin { display: block; }
+body.modo-admin-activo .solo-normal { display: none; }
 </style>
 </head>
 <body>
