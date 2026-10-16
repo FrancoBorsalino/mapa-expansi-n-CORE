@@ -2,7 +2,14 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#111111">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="CORE Mapa">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>Mapa de Expansión · CORE</title>
 <link rel="icon" type="image/x-icon" href="logo.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,9 +22,6 @@
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 <style>
-#btn-modo-admin { opacity: .35; font-size: 10px; }
-#btn-modo-admin:hover { opacity: .8; }
-
 :root {
   --orange:  #FF5C33;
   --dark:    #333333;
@@ -503,10 +507,8 @@ main {
   #sidebar { width: 220px; }
   .header-title { display: none; }
 }
-.solo-admin { display: none; }
-body.modo-admin-activo .solo-admin { display: block; }
-body.modo-admin-activo .solo-normal { display: none; }
 </style>
+<link rel="stylesheet" href="mobile.css">
 </head>
 <body>
 
@@ -551,57 +553,7 @@ body.modo-admin-activo .solo-normal { display: none; }
       ↺ Apagar todas las capas
     </button>
 
-    <div class="panel solo-admin">
-      <div class="panel-title" id="toggle-zonas-admin" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; user-select:none;">
-        <span>Zonas (admin)</span>
-        <span id="zonas-admin-arrow" style="transition: transform .2s; font-size:10px;">▼</span>
-      </div>
-
-      <div id="zonas-admin-body" style="display:none; margin-top:.6rem;">
-
-        <!-- Medir distancia (admin) -->
-        <button id="btn-medir-admin" class="tool-btn-full">Medir distancia (A→B)</button>
-        <div id="medir-status-admin" style="font-size:10.5px; color:var(--muted); margin-top:.35rem; line-height:1.35;"></div>
-        <button id="btn-clear-medicion-admin" class="tool-btn-full" style="display:none; margin-top:.35rem;">Borrar medición</button>
-
-        <hr style="border:none; border-top:1px solid var(--border); margin:.6rem 0;">
-
-        <!-- Radio personalizado (admin) -->
-        <button id="btn-radio-admin" class="tool-btn-full">Radio personalizado</button>
-        <div id="radio-status-admin" style="font-size:10.5px; color:var(--muted); margin-top:.35rem; line-height:1.35;"></div>
-        <button id="btn-clear-radios-admin" class="tool-btn-full" style="display:none; margin-top:.35rem;">Borrar radios</button>
-
-        <hr style="border:none; border-top:1px solid var(--border); margin:.6rem 0;">
-
-        <!-- Dibujo de zonas: sincronizado (no cache local) -->
-        <div class="layer-item" style="padding-left:0;">
-          <input type="checkbox" id="chk-zonas-admin" checked>
-          <label for="chk-zonas-admin">Mostrar zonas (admin)</label>
-        </div>
-        <div class="tool-grid" style="margin-top:.5rem;">
-          <button id="btn-dibujar-admin" class="tool-btn">Dibujar zona</button>
-          <button id="btn-editar-admin" class="tool-btn">Editar formas</button>
-          <button id="btn-exportar-admin" class="tool-btn">Exportar</button>
-          <button id="btn-importar-admin" class="tool-btn">Importar</button>
-        </div>
-        <input type="file" id="input-importar-admin" accept=".geojson,.json" style="display:none;">
-        <div id="dibujo-admin-status" style="font-size:10.5px; color:var(--muted); margin-top:.4rem; line-height:1.35;"></div>
-        <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.5rem;">
-          Esto se guarda para todos los que entren en modo admin (no es local a este navegador).
-        </div>
-
-        <hr style="border:none; border-top:1px solid var(--border); margin:.6rem 0;">
-
-        <!-- Contorno de barrios (espejo del checkbox normal) -->
-        <div class="layer-item" id="item-contorno-barrios-admin" style="padding-left:0;">
-          <input type="checkbox" id="chk-contorno-barrios-admin">
-          <span class="swatch" style="background:transparent; border:1.5px solid #E9E1FF; border-radius:2px;"></span>
-          <label for="chk-contorno-barrios-admin">Contorno de barrios (CABA + partidos Zona Norte)</label>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel solo-normal">
+    <div class="panel">
       <div class="panel-title" id="toggle-herramientas" style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; user-select:none;">
         <span>Herramientas</span>
         <span id="herramientas-arrow" style="transition: transform .2s; font-size:10px;">▼</span>
@@ -669,12 +621,12 @@ body.modo-admin-activo .solo-normal { display: none; }
           <span class="swatch" style="background:transparent; border:2px solid #FF5C33; border-radius:50%;"></span>
           <label for="chk-radio10km">Radio de 1km por sede</label>
         </div>
-        <div class="layer-item solo-admin" style="margin-top:.3rem;">
+        <div class="layer-item" style="margin-top:.3rem;">
           <input type="checkbox" id="chk-saturacion">
           <span class="swatch" style="background:linear-gradient(90deg,#FCA35D,#B71C1C);"></span>
           <label for="chk-saturacion">Saturación (solapamiento 1km)</label>
         </div>
-        <div id="legend-saturacion" class="legend-box solo-admin" style="margin-top:.5rem;">
+        <div id="legend-saturacion" class="legend-box" style="margin-top:.5rem;">
           <div class="legend-row"><span class="legend-swatch" style="background:#FCA35D;"></span>1 sede cerca</div>
           <div class="legend-row"><span class="legend-swatch" style="background:#FF7A3D;"></span>2 sedes se superponen</div>
           <div class="legend-row"><span class="legend-swatch" style="background:#FF3D3D;"></span>3 sedes se superponen</div>
@@ -705,14 +657,28 @@ body.modo-admin-activo .solo-normal { display: none; }
       </div>
     </div>
 
-    <div class="panel solo-admin">
+    <div class="panel">
+      <div class="panel-title collapsible-header" data-target="body-competencia">
+        <span>Competencia</span>
+        <span class="collapse-arrow">▼</span>
+      </div>
+      <div class="panel-body" id="body-competencia">
+        <div class="layer-item">
+          <input type="checkbox" id="chk-deportivos">
+          <span class="swatch" style="background:#4C9AFF;"></span>
+          <label for="chk-deportivos">Establecimientos deportivos</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
       <div class="panel-title collapsible-header" data-target="body-heatmap">
         <span>Mapa de calor</span>
         <span class="collapse-arrow">▼</span>
       </div>
       <div class="panel-body" id="body-heatmap">
         <div class="layer-item">
-          <input type="checkbox" id="chk-heatmap">
+          <input type="checkbox" id="chk-heatmap" checked>
           <span class="swatch" style="background:radial-gradient(circle, #FF3D3D, transparent);"></span>
           <label for="chk-heatmap">Densidad</label>
         </div>
@@ -724,28 +690,14 @@ body.modo-admin-activo .solo-normal { display: none; }
         <div id="heatmap-filtro-sucursales" style="display:none; margin-top:.6rem;"></div>
 
         <div id="heatmap-controles" style="display:none; margin-top:.6rem;">
-          <div style="font-size:10.5px; color:var(--muted); margin-bottom:.2rem;">Radio: <span id="heatmap-radio-val">8</span>px</div>
-          <input type="range" id="heatmap-radio" min="8" max="60" value="8" style="width:100%; accent-color:var(--orange);">
-          <div style="font-size:10.5px; color:var(--muted); margin:.4rem 0 .2rem;">Difuminado: <span id="heatmap-blur-val">4</span>px</div>
-          <input type="range" id="heatmap-blur" min="2" max="40" value="4" style="width:100%; accent-color:var(--orange);">
+          <div style="font-size:10.5px; color:var(--muted); margin-bottom:.2rem;">Radio: <span id="heatmap-radio-val">25</span>px</div>
+          <input type="range" id="heatmap-radio" min="8" max="60" value="25" style="width:100%; accent-color:var(--orange);">
+          <div style="font-size:10.5px; color:var(--muted); margin:.4rem 0 .2rem;">Difuminado: <span id="heatmap-blur-val">15</span>px</div>
+          <input type="range" id="heatmap-blur" min="2" max="40" value="15" style="width:100%; accent-color:var(--orange);">
         </div>
 
         <div style="font-size:10px; color:var(--muted); line-height:1.4; margin-top:.5rem;">
           CSV: columnas <code>lat</code>/<code>lon</code>, opcional <code>peso</code>.
-        </div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-title collapsible-header" data-target="body-competencia">
-        <span>Competencia</span>
-        <span class="collapse-arrow">▼</span>
-      </div>
-      <div class="panel-body" id="body-competencia">
-        <div class="layer-item">
-          <input type="checkbox" id="chk-deportivos">
-          <span class="swatch" style="background:#4C9AFF;"></span>
-          <label for="chk-deportivos">Establecimientos deportivos</label>
         </div>
       </div>
     </div>
@@ -874,7 +826,7 @@ body.modo-admin-activo .solo-normal { display: none; }
       </div>
     </div>
 
-    <div class="panel solo-admin">
+    <div class="panel">
       <div class="panel-title collapsible-header" data-target="body-locales">
         <span>Locales comerciales</span>
         <span class="collapse-arrow">▼</span>
@@ -893,11 +845,6 @@ body.modo-admin-activo .solo-normal { display: none; }
     </div>
 
     </div><!-- /tab-content-busqueda -->
-
-    <div style="text-align:center; margin-top:1.5rem; padding-bottom:.5rem;">
-      <button id="btn-modo-admin" class="solo-normal" style="background:none; border:none; color:var(--muted); cursor:pointer; letter-spacing:.05em;">· modo admin ·</button>
-      <button id="btn-salir-modo-admin" class="solo-admin" style="background:var(--bg3); border:1px solid var(--border); color:var(--text); cursor:pointer; padding:.5rem .8rem; border-radius:8px; font-size:12px;">↩ Volver a modo externo</button>
-    </div>
 
   </aside>
 
@@ -923,19 +870,8 @@ body.modo-admin-activo .solo-normal { display: none; }
   </div>
 </div>
 
-<div id="modo-admin-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:3000; align-items:center; justify-content:center;">
-  <div style="background:var(--bg2); border:1px solid var(--border); border-radius:10px; padding:1.25rem; width:300px; box-shadow:0 8px 24px rgba(0,0,0,0.5);">
-    <div style="font-family:'Poppins',sans-serif; font-weight:600; color:var(--orange); font-size:14px; margin-bottom:.7rem;">Modo admin</div>
-    <input id="modo-admin-input" type="password" placeholder="Contraseña" style="width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:.6rem; border-radius:6px; font-size:13px; font-family:inherit; outline:none;">
-    <div id="modo-admin-error" style="font-size:11px; color:#FF3D3D; margin-top:.4rem; min-height:14px;"></div>
-    <div style="display:flex; gap:.5rem; margin-top:.8rem;">
-      <button id="modo-admin-cancelar" style="flex:1; background:transparent; border:1px solid var(--border); color:var(--muted); padding:.5rem; border-radius:6px; font-size:12px; cursor:pointer;">Cancelar</button>
-      <button id="modo-admin-entrar" style="flex:1; background:var(--orange); border:none; color:white; padding:.5rem; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">Entrar</button>
-    </div>
-  </div>
-</div>
-
 <script src="logo_data.js"></script>
 <script src="app.js"></script>
+<script src="mobile.js"></script>
 </body>
 </html>
