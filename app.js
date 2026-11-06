@@ -374,7 +374,7 @@ function construirCapasRegion(region) {
       },
       onEachFeature: (f, layer) => {
         const p = f.properties;
-        layer.bindPopup(`<div class="popup-title">CORE ${p.sede}</div><div class="popup-row">${p.direccion}</div><div class="popup-row">Modelo: ${p.modelo}</div>`);
+        layer.bindPopup(`<div class="popup-title">CORE ${p.sede}</div><div class="popup-row">${p.direccion}</div><div class="popup-row">Modelo: ${p.modelo}</div>${p.tipo ? `<div class="popup-row">${p.tipo}</div>` : ''}`);
       }
     });
     capasActivas['chk-core'] = coreLayer;
